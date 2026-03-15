@@ -1,0 +1,13 @@
+# List of YouTube channels to ingest
+channels:
+  - name: "Lex Fridman"
+    url: "https://www.youtube.com/@lexfridman"
+    category: "Technology"
+    
+  - name: "All-In Podcast"
+    url: "https://www.youtube.com/@allin"
+    category: "Business"
+
+  - name: "Huberman Lab"
+    url: "https://www.youtube.com/@hubermanlab"
+    category: "Health"
