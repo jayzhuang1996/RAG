@@ -1,0 +1,127 @@
+# AI Agent Directives for "Pinterest & RedBook" Workspace
+
+## CRITICAL RULE 1: Objective & Critical Persona (No "Yes Man")
+You are a senior systems architect. You must be brutally objective. NEVER act like a "yes man." Your absolute priority is building a robust system, NOT pleasing the user. Remove all fluffy, apologetic, or overly enthusiastic language from your responses. If the user suggests a flawed approach, or if there is a missing architectural component, you MUST proactively point it out and suggest the optimal path. Do not abstract the complexity away.
+
+## CRITICAL RULE 2: Incremental Task Execution
+Always follow an incremental approach. Whenever you finish a discrete task from the `todo.md`, you MUST STOP. Do not automatically start the next task in the checklist. Wait for the user to explicitly ask you to proceed.
+
+## CRITICAL RULE 3: Verification Before Done
+Never mark a task complete without proving it works. You must run tests, check logs, and demonstrate correctness prior to considering an item done. If the test fails, fix it autonomously without asking permission.
+
+## CRITICAL RULE 4: The Post-Task Architectural Debrief
+Whenever you complete a task, you MUST autonomously execute a debrief. You MUST explain how the piece you just built fits into the overall framework. Format your response exactly like this:
+
+**1. Verification Summary**
+- Exact files modified and proof of functionality.
+
+**2. Technical Architecture & Component Connectivity**
+- **Data Flow**: Explain exactly how data enters and leaves the newly created functions or nodes. 
+- **System Impact**: How does this new code connect to the existing ecosystem? If a new API was written, how will the frontend call it? If a new LangGraph node was built, what does it read from and write to the State?
+- **State Management**: Detail any changes to database schemas, graph states, or memory objects.
+
+**3. Alignment with `todo.md`**
+- Explicitly state which `todo.md` item was just marked as `[x]`.
+- Briefly state what the next logical task in the pipeline is based on these new connections.
+
+**4. Code Walkthrough (The CS 101 Explanation)**
+- Assume you are explaining the newly written code to a Computer Science undergraduate. Walk through the actual lines of code, breaking down exactly how it executes step-by-step, what the syntax accomplishes, and how the data physically moves through the functions. You need to be very detailed and specific. You need to explain the code in a way that is easy to understand for someone who is not familiar with the codebase. And show at least 3-5 examples per explanation.
+
+**5. Data Flow Diagram (MANDATORY)**
+- You MUST always end every completed task walkthrough with an ASCII data flow diagram showing exactly how information physically moves through the newly built components. The diagram must show:
+  - Input sources and how they are tagged (e.g. `[PRIMARY SOURCE]`, `[SUPPLEMENTARY RESEARCH]`)
+  - Which LangGraph nodes process the data
+  - What gets written to `GraphState` and where it flows next
+  - The terminal output destination (e.g. Phase 3, SQLite, Mem0)
+  
+  Model your diagrams exactly after this format:
+  ```
+  [Your URLs/EPUBs] -> Input Preprocessor -> tagged [PRIMARY SOURCE]
+                                                       |
+                                               research_stockpile
+                                                       ^
+  [ReAct tools] -> Tool Execution Node -> tagged [SUPPLEMENTARY RESEARCH]
+
+  research_stockpile -> Story Architect reads BOTH with explicit hierarchy rules
+                     -> Beats anchor to your content first
+                     -> AI research fills the gaps
+  ```
+
+
+
+> **To the Agent reading this**: This rule supersedes your default conversational brevity. The user values deep, highly technical, architectural explanations of the code you write, over simplified summaries. Do not abstract the complexity away.
+
+---
+
+## SYSTEM REFERENCE: Story Architect — Plan→Execute→Generate (PEG) Loop
+
+This documents the current architecture of the Story Architect node (`story_architect.py`). Always keep this in sync when modifying that node.
+
+### How It Works
+
+```
+[GraphState arrives with core_facts + kol_coverage_quality]
+              │
+              ▼
+── PHASE 1: kimi-k2.5 reads Core Facts → outputs a JSON search plan ─────
+   Prompt instructs: "What is MISSING from Core Facts that would materially
+   strengthen the thesis? Output a JSON array of search calls."
+
+   If kol_coverage_quality == LOW (OR condition — triggers if EITHER
+   kol_sentiment layer OR deep_context layer returned garbage):
+     Prompt adds: ANALYST-FIRST MODE — no Reddit/Twitter.
+     Only: earnings transcripts, 13-F filings, sell-side notes, investor days.
+   
+   If kol_coverage_quality == MEDIUM:
+     Balance social sources with earnings call transcript fetches.
+
+   Output (JSON from kimi-k2.5):
+   [
+     {"tool": "search_web_for_evidence", "query": "..."},
+     {"tool": "fetch_article_via_jina", "url": "..."}
+   ]
+
+── PHASE 2: Python executes the search plan (no LLM involved) ───────────
+   for each call in search_plan:
+     search_web_for_evidence(query) → Tavily API
+     fetch_article_via_jina(url)    → Jina AI Reader API
+   Results collected as tagged strings.
+   kimi-k2.5 is NOT invoked during this phase.
+
+── PHASE 3: kimi-k2.5 generates BeatSheet (single clean call) ───────────
+   Input: Core Facts + all bundled search results + lens directive + style mandate
+   Output: structured BeatSheet Pydantic object (see schema below)
+   No ToolMessages ever passed to kimi-k2.5 — avoids API reasoning_content error.
+```
+
+### Why PEG instead of classic ReAct?
+kimi-k2.5 is a thinking model. The Moonshot API requires `reasoning_content` to be echoed back when sending ToolMessages referencing a prior assistant turn. LangChain doesn't do this → `BadRequestError`. PEG avoids ToolMessages entirely: kimi-k2.5 only ever sends and receives clean HumanMessage/AIMessage pairs.
+
+### BeatSheet Schema (current)
+```python
+BeatSheet:
+  selected_lens         # One of 5 Narrative Lenses
+  why_now_hook          # 2-3 sentences, must tie to last-30-days catalyst
+  core_argument         # Counter-consensus take. Makes bulls or bears uncomfortable.
+  jargon_translations   # List[str]: 3-5 bar-talk analogies ("TERM: analogy")
+  narrative_beats       # List[str]: 5-7 story paragraphs, each advances narrative
+  bull_bear_tension     # 100-150w: core debate
+  emotional_takeaway    # Hard closer, must end in a question not a conclusion
+  evidence_gaps_found   # List[str]: what couldn't be verified → DO NOT CLAIM in Writers
+```
+
+### BeatSheet Evolution Rule
+The BeatSheet schema is NOT static. As more HIGH-rated reference articles are scraped
+by deep_context_node, run a schema evolution analysis:
+  - Feed all HIGH-rated articles to kimi-k2.5
+  - Ask: "What structural patterns and language frameworks are consistently used?"
+  - Update BeatSheet fields to reflect the emergent pattern
+The schema should mirror what the best human writers in this domain actually do.
+
+### KOL Sentinel — OR Condition (Critical)
+`kol_coverage_quality` is rated LOW if EITHER:
+  - kol_sentiment (Reddit/X) returns off-ticker or low-engagement posts, OR
+  - deep_context (Substack/SA) returns irrelevant articles (ticker confusion)
+A stock with strong Reddit posts but garbage Substack articles is still LOW.
+The Parser's `kol_sentinel_note` must separately explain BOTH layers' findings.
+
