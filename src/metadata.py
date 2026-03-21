@@ -20,14 +20,14 @@ ALLOWED_VERBS = [
     "primarily_covers", "briefly_mentions"
 ]
 
-def get_moonshot_client():
+def _get_client():
     api_key = os.getenv("MOONSHOT_API_KEY")
     if not api_key:
-        raise ValueError("MOONSHOT_API_KEY not found in environment variables.")
+        raise ValueError("Backend Configuration Error: MOONSHOT_API_KEY environment variable is missing.")
     return OpenAI(api_key=api_key, base_url="https://api.moonshot.ai/v1")
 
 def extract_metadata(text):
-    client = get_moonshot_client()
+    client = _get_client()
     truncated_text = text[:25000]
     allowed_verbs_str = ", ".join(ALLOWED_VERBS)
 

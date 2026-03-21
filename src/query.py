@@ -87,8 +87,12 @@ Question: {query}
 
 Answer (cite sources as [Source N]):"""
 
+    moonshot_key = os.getenv("MOONSHOT_API_KEY")
+    if not moonshot_key:
+        return "Backend Configuration Error: MOONSHOT_API_KEY environment variable is missing."
+
     client = OpenAI(
-        api_key=os.getenv("MOONSHOT_API_KEY"),
+        api_key=moonshot_key,
         base_url="https://api.moonshot.ai/v1"
     )
 
