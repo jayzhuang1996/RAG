@@ -26,5 +26,5 @@ ENV USE_SUPABASE=true
 # Expose port (default for many web services, even if just running a worker)
 EXPOSE 8000
 
-# Default command (can be overridden in railway.json for different services)
-CMD ["python", "main.py"]
+# Default command for the API service
+CMD ["python", "api.py"]
