@@ -49,7 +49,7 @@ Transcript:
 """
     try:
         completion = client.chat.completions.create(
-            model="moonshot-v1-32k",
+            model="moonshot-v1-128k",
             messages=[
                 {"role": "system", "content": "You are a structured data extraction assistant. Return only valid JSON."},
                 {"role": "user", "content": prompt}

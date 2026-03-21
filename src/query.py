@@ -97,7 +97,7 @@ Answer (cite sources as [Source N]):"""
     )
 
     response = client.chat.completions.create(
-        model="moonshot-v1-32k",
+        model="moonshot-v1-128k",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_message}
