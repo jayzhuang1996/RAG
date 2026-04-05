@@ -81,3 +81,13 @@ BEGIN
   LIMIT match_count;
 END;
 $$;
+
+-- 8. Health Monitoring Table
+CREATE TABLE IF NOT EXISTS viking_health (
+    job TEXT PRIMARY KEY,          -- e.g. 'ingestion'
+    last_run TIMESTAMPTZ,          -- when it started
+    last_success TIMESTAMPTZ,      -- when it last completed successfully
+    status TEXT DEFAULT 'unknown', -- 'running', 'success', 'failed'
+    error_message TEXT,            -- last error if failed
+    videos_processed INTEGER DEFAULT 0
+);
