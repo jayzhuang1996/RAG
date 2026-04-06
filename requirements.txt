@@ -1,5 +1,6 @@
 # Scraping
 scrapetube>=2.5.0
+youtube_transcript_api>=0.6.2
 chromadb>=0.4.15
 openai
 python-dotenv
