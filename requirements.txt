@@ -20,3 +20,4 @@ fastapi
 uvicorn
 pydantic
 supabase
+huggingface-hub<1.0
