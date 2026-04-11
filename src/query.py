@@ -58,7 +58,7 @@ def _build_graph_block(graph_triples):
         return ""
     
     header = "Verified Relationship Graph Data (Fact Triples):"
-    triples_text = "\n".join([f"- {t}" for t in graph_triples])
+    triples_text = "\n".join([f"- {t['subject']} {t['verb']} {t['object']}" for t in graph_triples])
     return f"{header}\n{triples_text}"
 
 
@@ -111,7 +111,6 @@ Answer (cite sources as [Source N]):"""
     response = client.chat.completions.create(
         model="moonshot-v1-128k",
         messages=[
-            {"role": "system", "system_prompt": system_prompt}, # Note: use system_prompt as content
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_message}
         ],
