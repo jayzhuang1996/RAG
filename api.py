@@ -10,11 +10,15 @@ from src.query import generate_answer
 
 app = FastAPI(title="Podcast RAG API")
 
+from typing import List, Dict, Any
+
 class QueryRequest(BaseModel):
     question: str
 
 class QueryResponse(BaseModel):
     answer: str
+    graph_data: List[str]
+    sources: List[Dict[str, Any]]
 
 @app.get("/")
 def read_root():
@@ -24,8 +28,12 @@ def read_root():
 async def query_rag(request: QueryRequest):
     try:
         # Note: generate_answer handles retrieval and LLM synthesis
-        answer = generate_answer(request.question)
-        return QueryResponse(answer=answer)
+        result = generate_answer(request.question)
+        return QueryResponse(
+            answer=result["answer"],
+            graph_data=result["graph_data"],
+            sources=result["sources"]
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

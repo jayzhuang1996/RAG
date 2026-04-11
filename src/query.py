@@ -53,6 +53,14 @@ def _build_context_block(context_results):
     if not USE_SUPABASE: conn.close()
     return "\n\n---\n\n".join(blocks), sources
 
+def _build_graph_block(graph_triples):
+    if not graph_triples:
+        return ""
+    
+    header = "Verified Relationship Graph Data (Fact Triples):"
+    triples_text = "\n".join([f"- {t}" for t in graph_triples])
+    return f"{header}\n{triples_text}"
+
 
 import yaml
 
@@ -69,18 +77,22 @@ def generate_answer(query: str) -> str:
     system_prompt = get_config_prompt()
     retriever = get_retriever()
 
-    print("Retrieving relevant context...")
-    context_results = retriever.retrieve(query)
+    print("Retrieving relevant context & graph relationships...")
+    retrieval_output = retriever.retrieve(query)
+    context_results = retrieval_output['text_context']
+    graph_triples = retrieval_output['graph_context']
 
-    if not context_results:
+    if not context_results and not graph_triples:
         return "No relevant content found in the knowledge base for your query."
 
     context_text, sources = _build_context_block(context_results)
+    graph_text = _build_graph_block(graph_triples)
 
     user_message = f"""Context from podcast transcripts:
-
 {context_text}
 
+---
+{graph_text}
 ---
 
 Question: {query}
@@ -99,6 +111,7 @@ Answer (cite sources as [Source N]):"""
     response = client.chat.completions.create(
         model="moonshot-v1-128k",
         messages=[
+            {"role": "system", "system_prompt": system_prompt}, # Note: use system_prompt as content
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_message}
         ],
@@ -123,8 +136,11 @@ Answer (cite sources as [Source N]):"""
         full_answer += delta
 
     print(f"\n{'='*60}\n")
-    return full_answer
-
+    return {
+        "answer": full_answer,
+        "graph_data": graph_triples,
+        "sources": sources
+    }
 
 if __name__ == "__main__":
     import argparse
