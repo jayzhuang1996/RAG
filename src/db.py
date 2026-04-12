@@ -98,6 +98,16 @@ def init_db():
     );
     """)
 
+    # 6. Communities Table (LightRAG / Phase 12)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS communities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        nodes TEXT NOT NULL -- Stored as JSON string locally
+    );
+    """)
+
     conn.commit()
     conn.close()
     print(f"Database initialized at {DB_PATH}")

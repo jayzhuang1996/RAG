@@ -91,3 +91,12 @@ CREATE TABLE IF NOT EXISTS viking_health (
     error_message TEXT,            -- last error if failed
     videos_processed INTEGER DEFAULT 0
 );
+
+-- 9. Communities Table (LightRAG / Phase 12)
+CREATE TABLE IF NOT EXISTS viking_communities (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    nodes JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

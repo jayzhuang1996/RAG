@@ -1,11 +1,11 @@
 import os
 import sys
 from dotenv import load_dotenv
-from openai import OpenAI
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.db import get_connection, get_supabase_client
 from src.retrieval import HybridRetriever
+from src.agent import run_synthesis_pipeline
 
 load_dotenv()
 
@@ -103,38 +103,21 @@ Answer (cite sources as [Source N]):"""
     if not moonshot_key:
         return "Backend Configuration Error: MOONSHOT_API_KEY environment variable is missing."
 
-    client = OpenAI(
-        api_key=moonshot_key,
-        base_url="https://api.moonshot.ai/v1"
-    )
-
-    response = client.chat.completions.create(
-        model="moonshot-v1-128k",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_message}
-        ],
-        temperature=0.3,
-        stream=True  # Stream so it feels responsive
-    )
-
     # Print sources header
     print(f"\n{'='*60}")
     print(f"Query: {query}")
     print(f"{'='*60}")
-    print("\nSources used:")
+    print("\nSources retrieved:")
     for s in sources:
         print(f"  [{s['index']}] {s['title']}")
-    print(f"\n{'='*60}\nAnswer:\n")
 
-    # Stream the response
-    full_answer = ""
-    for chunk in response:
-        delta = chunk.choices[0].delta.content or ""
-        print(delta, end="", flush=True)
-        full_answer += delta
-
+    # Run Multi-Agent Synthesis (LangGraph)
+    full_answer = run_synthesis_pipeline(query, context_text, graph_text)
+    
+    print(f"\n{'='*60}\nFinal Synthesized Answer:\n")
+    print(full_answer)
     print(f"\n{'='*60}\n")
+    
     return {
         "answer": full_answer,
         "graph_data": graph_triples,

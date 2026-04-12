@@ -45,15 +45,20 @@
 - [x] Update `api.py` to return graph data alongside the text answer (for frontend to render)
 - [x] Push to Railway → auto-deploy
 
-## 7. Phase 10: Simple Frontend (Next.js on Vercel) [PLANNED]
-- [ ] Initialize Next.js project
-- [ ] Build Chat/Search Interface (streaming text response)
-- [ ] Integrate D3.js/Mermaid.js for **live relationship graph** shown alongside each answer
-- [ ] Hierarchical drillable subgraph (click a node to expand its connections)
+## 7. Phase 10: Enterprise UI Dashboard (Next.js & Recharts) [PLANNED]
+- [ ] Initialize Next.js project on Vercel
+- [ ] Build Chat Interface for Querying the LangGraph Backend
+- [ ] Integrate **Recharts** (or Nivo) for Semantic Heatmaps (Guest x Concepts)
+- [ ] Build Expandable Entity Profile Cards (No D3.js Hairballs)
 - [ ] **Vercel Setup & Deployment**
   - Connect GitHub repository to Vercel dashboard
   - Configure Environment Variables (point to Railway API URL)
-  - Deploy and test end-to-end integration
 
-## 8. Final End-to-End Verification
-- [ ] Run full pipeline from cloud ingestion to frontend query with live graph visualization
+## 8. Phase 12: Multi-Agent Synthesis & LightRAG [IN PROGRESS]
+- [ ] Implement robust **LightRAG** knowledge hierarchy (Global vs Local contexts)
+- [x] Implement **LangGraph** synthesis pipeline (Researcher -> Analyst -> Copywriter)
+- [ ] Extract "Communities" from flat triplets for Sunburst Data
+
+## 9. Final End-to-End Verification
+- [ ] Verify LangGraph generates premium analyst-grade reports
+- [ ] Verify Next.js renders interactive Semantic Heatmap and Sunburst cleanly

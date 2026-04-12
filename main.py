@@ -27,6 +27,10 @@ def cmd_backfill(args):
     from src.backfill import backfill_chunks
     backfill_chunks(limit=args.limit)
 
+def cmd_communities(args):
+    from src.communities import extract_and_save_communities
+    extract_and_save_communities()
+
 def cmd_query(args):
     from src.query import generate_answer
     generate_answer(args.question)
@@ -47,11 +51,15 @@ Examples:
   # Ingest the 50 most recent videos from all channels in config
   python main.py ingest --limit 50
 
-  # Only run the transcript step
-  python main.py ingest --step transcript
+Examples:
+  # Ingest the 50 most recent videos from all channels in config
+  python main.py ingest --limit 50
 
   # Embed/chunk all transcripts that don't have vectors yet
   python main.py backfill
+  
+  # Build LightRAG Communities from Fact Triplets
+  python main.py communities
 
   # Ask a question
   python main.py query "What did Sam Altman say about AI safety?"
@@ -68,6 +76,9 @@ Examples:
     # --- backfill ---
     backfill_parser = subparsers.add_parser('backfill', help='Chunk and embed existing transcripts')
     backfill_parser.add_argument('--limit', type=int, default=None)
+    
+    # --- communities ---
+    comm_parser = subparsers.add_parser('communities', help='Extract LightRAG communities from graph data')
 
     # --- query ---
     query_parser = subparsers.add_parser('query', help='Ask a question against your knowledge base')
@@ -84,6 +95,8 @@ Examples:
         cmd_ingest(args)
     elif args.command == 'backfill':
         cmd_backfill(args)
+    elif args.command == 'communities':
+        cmd_communities(args)
     elif args.command == 'query':
         cmd_query(args)
     elif args.command == 'graph':
