@@ -1,63 +1,207 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { MessageSquare, Layers, BarChart2, Github } from 'lucide-react';
+
+const ChatInterface = dynamic(() => import('../components/ChatInterface'), { ssr: false });
+const CommunityExplorer = dynamic(() => import('../components/CommunityExplorer'), { ssr: false });
+
+const NAV = [
+  { id: 'chat', label: 'Intelligence Chat', icon: MessageSquare },
+  { id: 'communities', label: 'Knowledge Clusters', icon: Layers },
+];
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('chat');
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      overflow: 'hidden',
+    }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: '220px',
+        flexShrink: 0,
+        background: 'var(--bg-panel)',
+        borderRight: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '20px 12px',
+      }}>
+        {/* Logo */}
+        <div style={{ marginBottom: '32px', padding: '0 4px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '4px',
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px',
+            }}>
+              ⚡
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '14px' }}>PodcastRAG</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Intelligence Platform</div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Nav */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+          {NAV.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`nav-item${activeTab === id ? ' active' : ''}`}
+              style={{ border: 'none', width: '100%', textAlign: 'left' }}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px',
+            borderRadius: '8px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+          }}>
+            <div className="pulse-dot" />
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>API Online</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Railway · FastAPI</div>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '12px',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            lineHeight: '1.6',
+            padding: '0 4px',
+          }}>
+            <div>LangGraph · BM25 + Vector</div>
+            <div>Cohere Rerank · Moonshot AI</div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        minWidth: 0,
+      }}>
+        {/* Top bar */}
+        <div style={{
+          height: '56px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 24px',
+          gap: '12px',
+          flexShrink: 0,
+          background: 'var(--bg-panel)',
+        }}>
+          <div style={{ flexShrink: 0 }}>
+            {activeTab === 'chat' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={15} color="var(--accent-blue)" />
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>Intelligence Chat</span>
+              </div>
+            )}
+            {activeTab === 'communities' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={15} color="var(--accent-purple)" />
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>Knowledge Clusters</span>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{
+              fontSize: '11px',
+              background: 'var(--accent-teal-dim)',
+              color: 'var(--accent-teal)',
+              border: '1px solid var(--accent-teal)',
+              borderRadius: '12px',
+              padding: '3px 10px',
+              fontWeight: 600,
+            }}>
+              3-Agent Pipeline
+            </span>
+            <span style={{
+              fontSize: '11px',
+              background: 'var(--bg-card)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '3px 10px',
+            }}>
+              Phase 12
+            </span>
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div style={{
+          flex: 1,
+          overflow: 'hidden',
+          padding: '20px',
+        }}>
+          {activeTab === 'chat' && (
+            <div style={{ height: '100%' }}>
+              <ChatInterface />
+            </div>
+          )}
+          {activeTab === 'communities' && (
+            <div style={{
+              height: '100%',
+              background: 'var(--bg-panel)',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              <div style={{
+                padding: '18px 24px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <Layers size={16} color="var(--accent-purple)" />
+                <span style={{ fontWeight: 600, fontSize: '15px' }}>Knowledge Clusters</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                  Greedy Modularity · networkx
+                </span>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                <CommunityExplorer />
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
