@@ -24,7 +24,13 @@ def get_moonshot_llm(temperature=0.3):
 def researcher_node(state: AgentState):
     print("🧠 [Researcher Agent] Extracting verified facts from transcripts and graph...")
     llm = get_moonshot_llm(temperature=0.1)
-    prompt = f"""You are the Lead Researcher. Your job is to extract all the hard facts and summarize what the context says about the query. Be extremely objective. Do NOT try to form conclusions or opinions. Just extract and synthesize the facts found in the provided sources.
+    prompt = f"""You are a meticulous Data Extraction Engine. Your only job is to sift through the provided raw transcript chunks and graph relationships and extract EVERY concrete fact, quote, and data point related to the user's query.
+    
+    RULES:
+    1. Do not hallucinate or infer.
+    2. Group facts logically.
+    3. Retain exact quotes if they represent strong opinions or claims.
+    4. Note contradictions if different sources say different things.
     
     Query: {state['query']}
     
@@ -40,45 +46,49 @@ def researcher_node(state: AgentState):
 def analyst_node(state: AgentState):
     print("🧠 [Analyst Agent] Identifying trends, contradictions, and actionable insights...")
     llm = get_moonshot_llm(temperature=0.4)
-    prompt = f"""You are a brilliant Analyst for a top-tier intelligence firm. Your job is to read the Researcher's summary and identify the "So What?". 
-    Why does this matter? What are the underlying trends, contradictions, missing links, or hidden insights? 
-    Don't just restate the facts; tell me what they MEAN in the context of the query.
+    prompt = f"""You are a brilliant Executive Strategist and Pattern Recognizer (running at Claude Opus 4.7 level intelligence). 
+    Your goal is to transform the underlying facts into a high-level strategic briefing. You do not just summarize; you ANALYZE.
+    
+    Analyze the following facts against the user's query and generate:
+    1. The core narrative / overarching truth.
+    2. Hidden trends or subtle implications the raw data implies but doesn't state outright.
+    3. Contradictions or open questions in the data.
+    4. Strategic implications (Why does this matter to a business leader or investor?)
 
     Query: {state['query']}
     
-    Researcher's Facts:
+    Extracted Facts:
     {state['research_summary']}
-    
-    Network Graph Context:
-    {state['graph_text']}
     """
     response = llm.invoke([HumanMessage(content=prompt)])
     return {"analyst_insights": response.content}
 
 def writer_node(state: AgentState):
-    print("🧠 [Writer Agent] Drafting premium newsletter-style synthesis...")
+    print("🧠 [Writer Agent] Drafting premium strategic advisor synthesis...")
     llm = get_moonshot_llm(temperature=0.5)
     
-    prompt = f"""You are an elite Tech Writer (like the Pragmatic Engineer or a McKinsey partner). 
-    Your job is to take the raw facts and the analyst's insights, and write a completely seamless, premium, authoritative response to the user's query.
+    prompt = f"""You are an elite Executive Advisor (operating at the intelligence level of an Opus 4.7 master analyst).
+    Your task is to synthesize the foundational facts and the strategic analysis into a final, authoritative briefing for the user.
     
-    RULES:
-    1. DO NOT sound like an AI. Never use phrases like "In conclusion", "It's important to note", or "Here are the facts".
-    2. Write using clean Markdown formatting (bolding key terms, using bullet points if necessary).
-    3. Be highly insightful, punchy, and confident.
-    4. You MUST cite your sources using [Source N] exactly where appropriate.
+    RULES & TONE:
+    1. Write with extreme clarity, confidence, and punchiness. (e.g., McKinsey partner or top-tier tech newsletter).
+    2. NO WEASEL WORDS ("It is important to note", "In conclusion", "As an AI"). Start directly with the thesis.
+    3. Structure the response beautifully using Markdown:
+       - Start with a bold **Executive Summary** (1-2 sentences).
+       - Provide the **Core Analysis** (synthesize the facts smoothly, no robotic lists unless appropriate).
+       - Include a section for **Strategic Implications** or **Actionable Next Steps**.
+    4. You MUST cite your sources seamlessly. When you state a fact, append [Source N] immediately.
     
     User Query: {state['query']}
     
-    --- Facts (From Researcher) ---
+    --- Foundational Data (Facts) ---
     {state['research_summary']}
     
-    --- Synthesis & Meaning (From Analyst) ---
+    --- Strategic Deep-Dive (Analysis) ---
     {state['analyst_insights']}
     
-    Write the final cohesive answer:"""
+    Now, write the final Executive Briefing:"""
     
-    # We will use streaming in src/query.py directly if needed, but for the graph, we invoke it.
     response = llm.invoke([HumanMessage(content=prompt)])
     return {"final_answer": response.content}
 
@@ -110,7 +120,6 @@ def run_synthesis_pipeline(query: str, context_text: str, graph_text: str) -> st
         "final_answer": ""
     }
     
-    # Run the graph
     print("\n" + "="*60 + "\n[INITIATING LANGGRAPH SYNTHESIS PIPELINE]\n" + "="*60)
     final_state = synthesis_graph.invoke(initial_state)
     print("="*60 + "\n")

@@ -88,12 +88,26 @@ def generate_answer(query: str) -> str:
     context_text, sources = _build_context_block(context_results)
     graph_text = _build_graph_block(graph_triples)
 
+    # Fetch all communities to act as high-level LightRAG context
+    community_text = ""
+    if USE_SUPABASE:
+        try:
+            supabase = get_supabase_client()
+            com_res = supabase.table("viking_communities").select("title, summary").execute()
+            if com_res.data:
+                community_text = "MACRO-LEVEL COMMUNITY SUMMARIES:\n" + "\n".join(
+                    [f"- {c['title']}: {c['summary']}" for c in com_res.data]
+                )
+        except Exception as e:
+            print(f"Failed to fetch communities: {e}")
+
     user_message = f"""Context from podcast transcripts:
 {context_text}
 
 ---
 {graph_text}
 ---
+{community_text}
 
 Question: {query}
 
@@ -112,7 +126,7 @@ Answer (cite sources as [Source N]):"""
         print(f"  [{s['index']}] {s['title']}")
 
     # Run Multi-Agent Synthesis (LangGraph)
-    full_answer = run_synthesis_pipeline(query, context_text, graph_text)
+    full_answer = run_synthesis_pipeline(query, context_text, graph_text + "\n" + community_text)
     
     print(f"\n{'='*60}\nFinal Synthesized Answer:\n")
     print(full_answer)
