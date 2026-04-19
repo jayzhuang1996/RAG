@@ -61,8 +61,8 @@ class HybridRetriever:
         return [{'id': chunk_id, 'score': float(score)} for chunk_id, score in scored[:top_k]]
 
     def search_vector(self, query: str, top_k=VECTOR_TOP_K):
-        model = get_embedding_model()
-        query_embedding = model.encode([query]).tolist()[0]
+        from src.embeddings import get_collection, get_embeddings
+        query_embedding = get_embeddings([query])[0]
 
         if USE_SUPABASE:
             res = self._supabase.rpc('match_chunks', {
@@ -165,9 +165,69 @@ class HybridRetriever:
             })
         return context
 
+    def get_entities(self, query: str):
+        """Extract key entities from the user query to query the graph."""
+        from openai import OpenAI
+        moonshot_key = os.getenv("MOONSHOT_API_KEY")
+        if not moonshot_key: return []
+        
+        client = OpenAI(api_key=moonshot_key, base_url="https://api.moonshot.ai/v1")
+        prompt = f"Extract exactly 1-3 key technology entities (names, products, companies) from this question. Return only a comma-separated list of terms: '{query}'"
+        
+        try:
+            res = client.chat.completions.create(
+                model="moonshot-v1-32k",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            entities = [e.strip() for e in res.choices[0].message.content.split(",")]
+            return [e for e in entities if e]
+        except:
+            return []
+
+    def get_graph_context(self, entities):
+        """Fetch Subject-Verb-Object triples from Supabase for a set of entities."""
+        if not USE_SUPABASE or not entities:
+            return []
+        
+        all_triples = []
+        for entity in entities:
+            # Search both as subject and object
+            res = self._supabase.table("viking_relationships")\
+                .select("subject, verb, object")\
+                .or_(f"subject.ilike.%{entity}%,object.ilike.%{entity}%")\
+                .limit(10)\
+                .execute()
+            all_triples.extend(res.data)
+        
+        # Deduplicate
+        seen = set()
+        unique = []
+        for t in all_triples:
+            key = (t['subject'], t['verb'], t['object'])
+            if key not in seen:
+                seen.add(key)
+                unique.append({
+                    "subject": t['subject'], 
+                    "verb": t['verb'], 
+                    "object": t['object']
+                })
+        return unique
+
     def retrieve(self, query: str):
+        """Perform full hybrid retrieval + graph augmentation."""
+        # 1. Text Retrieval
         bm25_results = self.search_bm25(query)
         vector_results = self.search_vector(query)
         fused = self.rrf_fusion(bm25_results, vector_results)
         reranked = self.rerank(query, fused)
-        return self.get_context(reranked)
+        text_context = self.get_context(reranked)
+
+        # 2. Graph Retrieval
+        entities = self.get_entities(query)
+        graph_context = self.get_graph_context(entities)
+
+        return {
+            'text_context': text_context,
+            'graph_context': graph_context,
+            'entities': entities
+        }

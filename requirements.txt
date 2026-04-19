@@ -5,8 +5,6 @@ chromadb>=0.4.15
 openai
 python-dotenv
 termcolor
-sentence-transformers>=2.2.2
-
 # LLM APIs
 anthropic>=0.18.1
 cohere>=4.37.0
@@ -21,7 +19,6 @@ fastapi
 uvicorn
 pydantic
 supabase
-huggingface-hub<1.0
 
 langgraph
 langchain-openai
