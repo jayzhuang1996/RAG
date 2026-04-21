@@ -28,36 +28,12 @@ class HybridRetriever:
         self._supabase = get_supabase_client() if USE_SUPABASE else None
 
     def build_bm25_index(self):
-        """Load child chunks from selected DB and build index."""
-        if USE_SUPABASE:
-            res = self._supabase.table("viking_chunks").select("id, text").eq("type", "child").execute()
-            rows = res.data
-        else:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, text FROM chunks WHERE type = 'child'")
-            rows = cursor.fetchall()
-            conn.close()
-
-        self._bm25_corpus = [
-            {'id': r['id'], 'tokens': r['text'].lower().split()}
-            for r in rows
-        ]
-        tokenized = [c['tokens'] for c in self._bm25_corpus]
-        self._bm25_index = BM25Okapi(tokenized)
-        print(f"BM25 index built: {len(self._bm25_corpus)} child chunks.")
+        """BM25 is disabled in Cloud Mode to prevent 500MB OOM crashes."""
+        pass
 
     def search_bm25(self, query: str, top_k=BM25_TOP_K):
-        if not self._bm25_index:
-            self.build_bm25_index()
-        tokens = query.lower().split()
-        scores = self._bm25_index.get_scores(tokens)
-        scored = sorted(
-            zip([c['id'] for c in self._bm25_corpus], scores),
-            key=lambda x: x[1],
-            reverse=True
-        )
-        return [{'id': chunk_id, 'score': float(score)} for chunk_id, score in scored[:top_k]]
+        # Disabled for Cloud. We rely entirely on Vector Similarity + Cohere Rerank.
+        return []
 
     def search_vector(self, query: str, top_k=VECTOR_TOP_K):
         from src.embeddings import get_collection, get_embeddings
@@ -213,12 +189,10 @@ class HybridRetriever:
         return unique
 
     def retrieve(self, query: str):
-        """Perform full hybrid retrieval + graph augmentation."""
+        """Perform vector retrieval + graph augmentation."""
         # 1. Text Retrieval
-        bm25_results = self.search_bm25(query)
         vector_results = self.search_vector(query)
-        fused = self.rrf_fusion(bm25_results, vector_results)
-        reranked = self.rerank(query, fused)
+        reranked = self.rerank(query, vector_results)
         text_context = self.get_context(reranked)
 
         # 2. Graph Retrieval
