@@ -6,8 +6,7 @@ from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.db import get_connection, get_supabase_client
-from src.embeddings import get_collection, get_embedding_model
-
+from src.embeddings import get_collection
 load_dotenv()
 
 # Constants
