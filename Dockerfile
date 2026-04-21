@@ -23,8 +23,8 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV USE_SUPABASE=true
 
-# Expose port (default for many web services, even if just running a worker)
-EXPOSE 8000
+# Let Railway dynamically assign and route the PORT
+
 
 # Default command for the API service
 CMD uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}
