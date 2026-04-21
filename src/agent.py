@@ -15,7 +15,7 @@ class AgentState(TypedDict):
 
 def get_moonshot_llm(temperature=0.3):
     return ChatOpenAI(
-        model="moonshot-v1-128k",
+        model="moonshot-v1-8k",
         api_key=os.environ.get("MOONSHOT_API_KEY"),
         base_url="https://api.moonshot.ai/v1",
         temperature=temperature

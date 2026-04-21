@@ -42,46 +42,23 @@ def get_generate_answer():
 def read_root():
     return {"status": "online", "message": "Podcast RAG API is running (Lazy Loaded)"}
 
-from fastapi.responses import StreamingResponse
-import asyncio
-import json
-
-@app.post("/query")
+@app.post("/query", response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
-    async def stream_generator():
+    import asyncio
+    try:
         loop = asyncio.get_event_loop()
-        generate_answer_func = get_generate_answer()
-        
-        # Run the heavy 35-second LangGraph execution in a background thread
-        future = loop.run_in_executor(None, generate_answer_func, request.question)
-        
-        # Keep the Railway connection alive by streaming whitespaces
-        # the first yield sends 4KB of spaces to force proxy flush 
-        yield (" " * 4096) + "\n"
-        while not future.done():
-            yield " \n"
-            await asyncio.sleep(2)
+        def blocking_worker(question):
+            func = get_generate_answer()
+            return func(question)
             
-        try:
-            result = future.result()
-            # Yield final JSON
-            yield json.dumps({
-                "answer": result["answer"],
-                "graph_data": result["graph_data"],
-                "sources": result["sources"]
-            })
-        except Exception as e:
-            yield json.dumps({"error": str(e)})
-
-    return StreamingResponse(
-        stream_generator(), 
-        media_type="application/json",
-        headers={
-            "X-Accel-Buffering": "no",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive"
-        }
-    )
+        result = await loop.run_in_executor(None, blocking_worker, request.question)
+        return QueryResponse(
+            answer=result["answer"],
+            graph_data=result["graph_data"],
+            sources=result["sources"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

@@ -151,7 +151,7 @@ class HybridRetriever:
         
         try:
             res = client.chat.completions.create(
-                model="moonshot-v1-32k",
+                model="moonshot-v1-8k",
                 messages=[{"role": "user", "content": prompt}]
             )
             entities = [e.strip() for e in res.choices[0].message.content.split(",")]
