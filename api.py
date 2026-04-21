@@ -56,6 +56,8 @@ async def query_rag(request: QueryRequest):
         future = loop.run_in_executor(None, generate_answer_func, request.question)
         
         # Keep the Railway connection alive by streaming whitespaces
+        # the first yield sends 4KB of spaces to force proxy flush 
+        yield (" " * 4096) + "\n"
         while not future.done():
             yield " \n"
             await asyncio.sleep(2)
@@ -71,7 +73,15 @@ async def query_rag(request: QueryRequest):
         except Exception as e:
             yield json.dumps({"error": str(e)})
 
-    return StreamingResponse(stream_generator(), media_type="application/json")
+    return StreamingResponse(
+        stream_generator(), 
+        media_type="application/json",
+        headers={
+            "X-Accel-Buffering": "no",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn
