@@ -27,4 +27,4 @@ ENV USE_SUPABASE=true
 
 
 # Default command for the API service
-CMD uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["python", "api.py"]
