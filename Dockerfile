@@ -27,4 +27,4 @@ ENV USE_SUPABASE=true
 EXPOSE 8000
 
 # Default command for the API service
-CMD ["python", "api.py"]
+CMD uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}
