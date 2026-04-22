@@ -1,13 +1,46 @@
 # List of YouTube channels to ingest
+# Strategy: Top male-skewing, long-form, tech/politics/culture audience with heavy Lex/All-In overlap
 channels:
+  - name: "Joe Rogan Experience"
+    url: "https://www.youtube.com/@joerogan"
+    category: "Culture"
+
   - name: "Lex Fridman"
     url: "https://www.youtube.com/@lexfridman"
     category: "Technology"
-    
+
   - name: "All-In Podcast"
     url: "https://www.youtube.com/@allin"
     category: "Business"
 
-  - name: "Huberman Lab"
-    url: "https://www.youtube.com/@hubermanlab"
-    category: "Health"
+  - name: "PBD Podcast"
+    url: "https://www.youtube.com/@PBDPodcast"
+    category: "Business"
+
+  - name: "Diary of a CEO"
+    url: "https://www.youtube.com/@TheDiaryOfACEO"
+    category: "Business"
+
+  - name: "Tucker Carlson"
+    url: "https://www.youtube.com/@TuckerCarlson"
+    category: "Politics"
+
+  - name: "Modern Wisdom"
+    url: "https://www.youtube.com/@modernwisdom"
+    category: "Self-Improvement"
+
+  - name: "Sam Harris - Making Sense"
+    url: "https://www.youtube.com/@SamHarrisOrg"
+    category: "Philosophy"
+
+  - name: "Theo Von"
+    url: "https://www.youtube.com/@TheoVon"
+    category: "Culture"
+
+  - name: "Flagrant - Andrew Schulz"
+    url: "https://www.youtube.com/@Flagrant2"
+    category: "Culture"
+
+  - name: "Hard Fork"
+    url: "https://www.youtube.com/@hardfork"
+    category: "Technology"
