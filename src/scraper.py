@@ -61,7 +61,11 @@ def access_safe_scrape(limit=50):
     
     for channel in channels:
         print(f"Scraping {channel['name']}...")
-        found_videos = fetch_videos_for_channel(channel['url'], limit=limit)
+        try:
+            found_videos = fetch_videos_for_channel(channel['url'], limit=limit)
+        except Exception as e:
+            print(f"  -> SKIP: Failed to scrape {channel['name']}: {e}")
+            continue
         
         for vid in found_videos:
             if vid['id'] not in existing_ids:

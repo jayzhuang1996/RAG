@@ -22,7 +22,7 @@ channels:
     category: "Business"
 
   - name: "Tucker Carlson"
-    url: "https://www.youtube.com/@TuckerCarlson"
+    url: "https://www.youtube.com/@tuckercarlson"
     category: "Politics"
 
   - name: "Modern Wisdom"
@@ -34,12 +34,12 @@ channels:
     category: "Philosophy"
 
   - name: "Theo Von"
-    url: "https://www.youtube.com/@TheoVon"
+    url: "https://www.youtube.com/@theovon"
     category: "Culture"
 
-  - name: "Flagrant - Andrew Schulz"
-    url: "https://www.youtube.com/@Flagrant2"
-    category: "Culture"
+  - name: "My First Million"
+    url: "https://www.youtube.com/@MyFirstMillionPod"
+    category: "Business"
 
   - name: "Hard Fork"
     url: "https://www.youtube.com/@hardfork"
