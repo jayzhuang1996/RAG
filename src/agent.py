@@ -21,88 +21,44 @@ def get_moonshot_llm(temperature=0.3):
         temperature=temperature
     )
 
-def researcher_node(state: AgentState):
-    print("🧠 [Researcher Agent] Extracting verified facts from transcripts and graph...")
-    llm = get_moonshot_llm(temperature=0.1)
-    prompt = f"""You are a meticulous Data Extraction Engine. Your only job is to sift through the provided raw transcript chunks and graph relationships and extract EVERY concrete fact, quote, and data point related to the user's query.
+def synthesizer_node(state: AgentState):
+    print("🧠 [Synthesizer Agent] Extracting facts, analyzing trends, and drafting final briefing...")
+    llm = get_moonshot_llm(temperature=0.3)
     
-    RULES:
-    1. Do not hallucinate or infer.
-    2. Group facts logically.
-    3. Retain exact quotes if they represent strong opinions or claims.
-    4. Note contradictions if different sources say different things.
-    
-    Query: {state['query']}
-    
-    Podcast Transcripts:
-    {state['context_text']}
-    
-    Verified Network Graph:
-    {state['graph_text']}
-    """
-    response = llm.invoke([HumanMessage(content=prompt)])
-    return {"research_summary": response.content}
-
-def analyst_node(state: AgentState):
-    print("🧠 [Analyst Agent] Identifying trends, contradictions, and actionable insights...")
-    llm = get_moonshot_llm(temperature=0.4)
-    prompt = f"""You are a brilliant Executive Strategist and Pattern Recognizer (running at Claude Opus 4.7 level intelligence). 
-    Your goal is to transform the underlying facts into a high-level strategic briefing. You do not just summarize; you ANALYZE.
-    
-    Analyze the following facts against the user's query and generate:
-    1. The core narrative / overarching truth.
-    2. Hidden trends or subtle implications the raw data implies but doesn't state outright.
-    3. Contradictions or open questions in the data.
-    4. Strategic implications (Why does this matter to a business leader or investor?)
-
-    Query: {state['query']}
-    
-    Extracted Facts:
-    {state['research_summary']}
-    """
-    response = llm.invoke([HumanMessage(content=prompt)])
-    return {"analyst_insights": response.content}
-
-def writer_node(state: AgentState):
-    print("🧠 [Writer Agent] Drafting premium strategic advisor synthesis...")
-    llm = get_moonshot_llm(temperature=0.5)
-    
-    prompt = f"""You are an elite Executive Advisor (operating at the intelligence level of an Opus 4.7 master analyst).
-    Your task is to synthesize the foundational facts and the strategic analysis into a final, authoritative briefing for the user.
+    prompt = f"""You are an elite Executive Advisor & Data Extraction Engine.
+    Your task is to review raw podcast transcripts and relationship graphs, extract verified facts, and instantly synthesize them into a strategic executive briefing.
     
     RULES & TONE:
-    1. Write with extreme clarity, confidence, and punchiness. (e.g., McKinsey partner or top-tier tech newsletter).
-    2. NO WEASEL WORDS ("It is important to note", "In conclusion", "As an AI"). Start directly with the thesis.
-    3. Structure the response beautifully using Markdown:
-       - Start with a bold **Executive Summary** (1-2 sentences).
-       - Provide the **Core Analysis** (synthesize the facts smoothly, no robotic lists unless appropriate).
-       - Include a section for **Strategic Implications** or **Actionable Next Steps**.
-    4. You MUST cite your sources seamlessly. When you state a fact, append [Source N] immediately.
+    1. Write with extreme clarity, confidence, and punchiness (e.g., top-tier tech newsletter).
+    2. NO WEASEL WORDS ("It is important to note", "In conclusion", "As an AI").
+    3. Structure beautifully using Markdown:
+       - **Executive Summary** (1-2 sentences).
+       - **Core Analysis** (synthesize facts smoothly, note contradictions).
+       - **Strategic Implications** (Why it matters).
+    4. You MUST cite sources seamlessly. Append [Source N] to facts.
+    5. Do not hallucinate. Use ONLY the provided context.
     
     User Query: {state['query']}
     
-    --- Foundational Data (Facts) ---
-    {state['research_summary']}
+    --- Foundational Data (Podcast Transcripts) ---
+    {state['context_text']}
     
-    --- Strategic Deep-Dive (Analysis) ---
-    {state['analyst_insights']}
+    --- Verified Network Graph ---
+    {state['graph_text']}
     
     Now, write the final Executive Briefing:"""
     
     response = llm.invoke([HumanMessage(content=prompt)])
+    # Map the output to final_answer (and pass empty strings to others if needed)
     return {"final_answer": response.content}
 
 # Build the Graph
 workflow = StateGraph(AgentState)
 
-workflow.add_node("researcher", researcher_node)
-workflow.add_node("analyst", analyst_node)
-workflow.add_node("writer", writer_node)
+workflow.add_node("synthesizer", synthesizer_node)
 
-workflow.add_edge(START, "researcher")
-workflow.add_edge("researcher", "analyst")
-workflow.add_edge("analyst", "writer")
-workflow.add_edge("writer", END)
+workflow.add_edge(START, "synthesizer")
+workflow.add_edge("synthesizer", END)
 
 # Compile into a runnable
 synthesis_graph = workflow.compile()

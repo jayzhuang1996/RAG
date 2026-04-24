@@ -153,7 +153,7 @@ export default function Home() {
               padding: '4px 12px',
               fontWeight: 600,
             }}>
-              3-Agent Pipeline
+              Turbo Synthesis Pipeline
             </span>
             <span style={{
               fontSize: '11px',
