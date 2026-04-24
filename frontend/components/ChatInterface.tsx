@@ -78,15 +78,16 @@ export default function ChatInterface() {
       }}>
         {/* Header */}
         <div style={{
-          padding: '18px 24px',
+          padding: '24px 32px',
           borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-card)',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '12px',
         }}>
-          <Zap size={18} color="var(--accent-blue)" />
-          <span style={{ fontWeight: 600, fontSize: '15px' }}>Podcast Intelligence</span>
-          <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <Zap size={18} color="var(--accent-main)" />
+          <span style={{ fontWeight: 600, fontSize: '16px', fontFamily: 'var(--font-display)' }}>Podcast Intelligence</span>
+          <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
             LangGraph · BM25 + Vector · Cohere Rerank
           </span>
         </div>
@@ -140,11 +141,12 @@ export default function ChatInterface() {
               {msg.role === 'user' ? (
                 <div style={{
                   maxWidth: '75%',
-                  background: 'var(--accent-blue)',
+                  background: 'var(--accent-main)',
+                  boxShadow: 'var(--shadow-sm)',
                   borderRadius: '16px 16px 4px 16px',
-                  padding: '12px 18px',
+                  padding: '14px 20px',
                   color: '#fff',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   lineHeight: '1.6',
                 }}>
                   {msg.content}
@@ -152,24 +154,26 @@ export default function ChatInterface() {
               ) : msg.role === 'error' ? (
                 <div style={{
                   maxWidth: '85%',
-                  background: '#2a1010',
-                  border: '1px solid #5a2020',
+                  background: 'var(--accent-light)',
+                  border: '1px solid var(--accent-muted)',
                   borderRadius: '4px 16px 16px 16px',
                   padding: '14px 18px',
-                  color: '#ff6b6b',
-                  fontSize: '13px',
+                  color: 'var(--accent-hover)',
+                  fontSize: '14px',
+                  fontFamily: 'var(--font-mono)'
                 }}>
                   {msg.content}
                 </div>
               ) : (
                 <div style={{
                   maxWidth: '100%',
-                  background: 'var(--bg-card)',
+                  background: 'var(--bg-panel)',
                   border: '1px solid var(--border)',
+                  boxShadow: 'var(--shadow-md)',
                   borderRadius: '4px 16px 16px 16px',
-                  padding: '18px 22px',
+                  padding: '24px',
                 }}>
-                  <div className="prose-dark">
+                  <div className="prose-editorial">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.content}
                     </ReactMarkdown>
@@ -219,8 +223,9 @@ export default function ChatInterface() {
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{
-                background: 'var(--bg-card)',
+                background: 'var(--bg-panel)',
                 border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)',
                 borderRadius: '4px 16px 16px 16px',
                 padding: '16px 20px',
                 display: 'flex',
@@ -228,8 +233,9 @@ export default function ChatInterface() {
                 gap: '12px',
                 color: 'var(--text-secondary)',
                 fontSize: '13px',
+                fontFamily: 'var(--font-mono)'
               }}>
-                <Loader2 size={16} className="animate-spin" color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={16} className="animate-spin" color="var(--accent-main)" style={{ animation: 'spin 1s linear infinite' }} />
                 <span>Researcher → Analyst → Writer...</span>
               </div>
             </div>
@@ -237,10 +243,10 @@ export default function ChatInterface() {
         </div>
 
         {/* Input */}
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', background: 'var(--bg-card)' }}>
           <form
             onSubmit={e => { e.preventDefault(); handleSubmit(); }}
-            style={{ display: 'flex', gap: '10px', alignItems: 'center' }}
+            style={{ display: 'flex', gap: '12px', alignItems: 'center' }}
           >
             <input
               type="text"
@@ -250,33 +256,35 @@ export default function ChatInterface() {
               disabled={loading}
               style={{
                 flex: 1,
-                background: 'var(--bg-card)',
+                background: 'var(--bg-panel)',
                 border: '1px solid var(--border)',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
                 borderRadius: '12px',
-                padding: '13px 18px',
+                padding: '14px 20px',
                 color: 'var(--text-primary)',
-                fontSize: '14px',
+                fontSize: '15px',
                 outline: 'none',
-                transition: 'border-color 0.15s',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
-              onFocus={e => (e.target.style.borderColor = 'var(--accent-blue)')}
-              onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+              onFocus={e => { e.target.style.borderColor = 'var(--accent-main)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.02)'; }}
             />
             <button
               type="submit"
               disabled={loading || !query.trim()}
               style={{
-                background: query.trim() ? 'var(--accent-blue)' : 'var(--bg-card)',
-                border: '1px solid var(--border)',
+                background: query.trim() ? 'var(--accent-main)' : 'var(--bg-panel)',
+                border: `1px solid ${query.trim() ? 'var(--accent-main)' : 'var(--border)'}`,
+                boxShadow: query.trim() ? 'var(--shadow-sm)' : 'none',
                 borderRadius: '12px',
-                padding: '13px 18px',
+                padding: '14px 20px',
                 cursor: query.trim() ? 'pointer' : 'default',
                 display: 'flex',
                 alignItems: 'center',
                 transition: 'all 0.15s',
               }}
             >
-              <Send size={16} color={query.trim() ? '#fff' : 'var(--text-muted)'} />
+              <Send size={18} color={query.trim() ? '#fff' : 'var(--text-muted)'} />
             </button>
           </form>
         </div>

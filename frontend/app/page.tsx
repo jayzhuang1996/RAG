@@ -23,43 +23,45 @@ export default function Home() {
     }}>
       {/* Sidebar */}
       <aside style={{
-        width: '220px',
+        width: '240px',
         flexShrink: 0,
-        background: 'var(--bg-panel)',
+        background: 'transparent',
         borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '20px 12px',
+        padding: '24px 16px',
       }}>
         {/* Logo */}
-        <div style={{ marginBottom: '32px', padding: '0 4px' }}>
+        <div style={{ marginBottom: '32px', padding: '0 8px' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '12px',
             marginBottom: '4px',
           }}>
             <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
+              width: '36px',
+              height: '36px',
+              background: 'var(--accent-main)',
+              color: 'white',
               borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '16px',
+              fontSize: '18px',
+              boxShadow: 'var(--shadow-sm)'
             }}>
               ⚡
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '14px' }}>PodcastRAG</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Intelligence Platform</div>
+              <div style={{ fontWeight: 700, fontSize: '15px', fontFamily: 'var(--font-display)' }}>PodcastRAG</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Intelligence Platform</div>
             </div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -78,25 +80,26 @@ export default function Home() {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '8px',
+            gap: '10px',
+            padding: '10px',
             borderRadius: '8px',
-            background: 'var(--bg-card)',
+            background: 'var(--bg-panel)',
             border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)'
           }}>
             <div className="pulse-dot" />
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>API Online</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Railway · FastAPI</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Railway · FastAPI</div>
             </div>
           </div>
 
           <div style={{
-            marginTop: '12px',
+            marginTop: '16px',
             fontSize: '11px',
             color: 'var(--text-muted)',
             lineHeight: '1.6',
-            padding: '0 4px',
+            padding: '0 8px',
           }}>
             <div>LangGraph · BM25 + Vector</div>
             <div>Cohere Rerank · Moonshot AI</div>
@@ -111,14 +114,15 @@ export default function Home() {
         flexDirection: 'column',
         overflow: 'hidden',
         minWidth: 0,
+        background: 'var(--bg-panel)'
       }}>
         {/* Top bar */}
         <div style={{
-          height: '56px',
+          height: '64px',
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
-          padding: '0 24px',
+          padding: '0 32px',
           gap: '12px',
           flexShrink: 0,
           background: 'var(--bg-panel)',
@@ -126,14 +130,14 @@ export default function Home() {
           <div style={{ flexShrink: 0 }}>
             {activeTab === 'chat' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MessageSquare size={15} color="var(--accent-blue)" />
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>Intelligence Chat</span>
+                <MessageSquare size={16} color="var(--accent-main)" />
+                <span style={{ fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Intelligence Chat</span>
               </div>
             )}
             {activeTab === 'communities' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={15} color="var(--accent-purple)" />
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>Knowledge Clusters</span>
+                <Layers size={16} color="var(--accent-main)" />
+                <span style={{ fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Knowledge Clusters</span>
               </div>
             )}
           </div>
@@ -141,22 +145,24 @@ export default function Home() {
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{
               fontSize: '11px',
-              background: 'var(--accent-teal-dim)',
-              color: 'var(--accent-teal)',
-              border: '1px solid var(--accent-teal)',
-              borderRadius: '12px',
-              padding: '3px 10px',
+              fontFamily: 'var(--font-mono)',
+              background: 'var(--accent-light)',
+              color: 'var(--accent-main)',
+              border: '1px solid var(--accent-muted)',
+              borderRadius: '20px',
+              padding: '4px 12px',
               fontWeight: 600,
             }}>
               3-Agent Pipeline
             </span>
             <span style={{
               fontSize: '11px',
-              background: 'var(--bg-card)',
-              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-mono)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-secondary)',
               border: '1px solid var(--border)',
-              borderRadius: '12px',
-              padding: '3px 10px',
+              borderRadius: '20px',
+              padding: '4px 12px',
             }}>
               Phase 12
             </span>
@@ -167,33 +173,37 @@ export default function Home() {
         <div style={{
           flex: 1,
           overflow: 'hidden',
-          padding: '20px',
+          padding: '24px 32px',
         }}>
           {activeTab === 'chat' && (
-            <div style={{ height: '100%' }}>
+            <div style={{ height: '100%', maxWidth: '1000px', margin: '0 auto' }}>
               <ChatInterface />
             </div>
           )}
           {activeTab === 'communities' && (
             <div style={{
               height: '100%',
+              maxWidth: '1000px',
+              margin: '0 auto',
               background: 'var(--bg-panel)',
               border: '1px solid var(--border)',
               borderRadius: '16px',
+              boxShadow: 'var(--shadow-md)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
             }}>
               <div style={{
-                padding: '18px 24px',
+                padding: '24px 32px',
                 borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-card)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '12px',
               }}>
-                <Layers size={16} color="var(--accent-purple)" />
-                <span style={{ fontWeight: 600, fontSize: '15px' }}>Knowledge Clusters</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                <Layers size={18} color="var(--accent-main)" />
+                <span style={{ fontWeight: 600, fontSize: '16px', fontFamily: 'var(--font-display)' }}>Knowledge Clusters</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>
                   Greedy Modularity · networkx
                 </span>
               </div>

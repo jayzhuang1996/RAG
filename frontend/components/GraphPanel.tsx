@@ -56,14 +56,15 @@ export default function GraphPanel({ triples, onClose }: Props) {
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px 20px',
+        padding: '24px 32px',
         borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-card)',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: '10px',
       }}>
-        <Share2 size={16} color="var(--accent-purple)" />
-        <span style={{ fontWeight: 600, fontSize: '14px', flex: 1 }}>
+        <Share2 size={18} color="var(--accent-main)" />
+        <span style={{ fontWeight: 600, fontSize: '16px', flex: 1, fontFamily: 'var(--font-display)' }}>
           Knowledge Graph
         </span>
         <button
@@ -176,11 +177,12 @@ export default function GraphPanel({ triples, onClose }: Props) {
 
       {/* Footer */}
       <div style={{
-        padding: '12px 16px',
+        padding: '16px 24px',
         borderTop: '1px solid var(--border)',
-        fontSize: '11px',
+        fontSize: '12px',
         color: 'var(--text-muted)',
         textAlign: 'center',
+        fontFamily: 'var(--font-mono)'
       }}>
         {triples.length} edges extracted via Moonshot AI
       </div>
