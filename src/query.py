@@ -27,28 +27,36 @@ def _build_context_block(context_results):
 
     blocks = []
     sources = []
+    video_title_map = {}
+    video_to_index = {}
+    next_index = 1
     
     if USE_SUPABASE:
         supabase = get_supabase_client()
-        # Optimization: Fetch all titles in one go if possible, or just individual lookups for now
     else:
         conn = get_connection()
         cursor = conn.cursor()
 
-    for i, c in enumerate(context_results, start=1):
+    for c in context_results:
         video_id = c['video_id']
-        title = video_id
         
-        if USE_SUPABASE:
-            res = supabase.table("viking_videos").select("title").eq("id", video_id).execute()
-            if res.data: title = res.data[0]['title']
-        else:
-            cursor.execute("SELECT title FROM videos WHERE id = ?", (video_id,))
-            row = cursor.fetchone()
-            if row: title = row['title']
-
-        sources.append({'index': i, 'video_id': video_id, 'title': title})
-        blocks.append(f"[Source {i}: {title}]\n{c['parent_text']}")
+        if video_id not in video_title_map:
+            title = video_id
+            if USE_SUPABASE:
+                res = supabase.table("viking_videos").select("title").eq("id", video_id).execute()
+                if res.data: title = res.data[0]['title']
+            else:
+                cursor.execute("SELECT title FROM videos WHERE id = ?", (video_id,))
+                row = cursor.fetchone()
+                if row: title = row['title']
+            
+            video_title_map[video_id] = title
+            video_to_index[video_id] = next_index
+            sources.append({'index': next_index, 'video_id': video_id, 'title': title})
+            next_index += 1
+            
+        current_idx = video_to_index[video_id]
+        blocks.append(f"[Source {current_idx}: {video_title_map[video_id]}]\n{c['parent_text']}")
 
     if not USE_SUPABASE: conn.close()
     return "\n\n---\n\n".join(blocks), sources
