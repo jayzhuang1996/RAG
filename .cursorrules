@@ -1,3 +1,7 @@
+Before writing any code, you MUST use your tools to read `~/self-improving/memory.md` and `~/self-improving/projects/[project-name].md`. 
+If the user corrects a mistake you made, you MUST write the correction to `~/self-improving/corrections.md` before finalizing your response.
+
+
 # AI Agent Directives for "Pinterest & RedBook" Workspace
 
 ## CRITICAL RULE 1: Objective & Critical Persona (No "Yes Man")

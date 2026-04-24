@@ -35,15 +35,22 @@ export default function ChatInterface() {
     setQuery('');
     setLoading(true);
 
-    try {
+      try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: question }),
       });
-      const data = await res.json();
+      
+      let data;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`API Endpoint Error: ${text.substring(0, 100)}...`);
+      }
 
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error || 'Unknown error occurred');
 
       const assistantMsg: Message = {
         role: 'assistant',
@@ -56,7 +63,7 @@ export default function ChatInterface() {
     } catch (err: any) {
       setMessages(prev => [...prev, {
         role: 'error',
-        content: `Error: ${err.message || 'Failed to get a response. Is the API running?'}`,
+        content: err.message,
       }]);
     } finally {
       setLoading(false);

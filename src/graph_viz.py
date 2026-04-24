@@ -2,28 +2,42 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.db import get_connection
+from src.db import get_connection, get_supabase_client
+
+USE_SUPABASE = os.getenv("USE_SUPABASE", "false").lower() == "true"
 
 def generate_mermaid_graph(video_id=None, subject=None):
     """
     Fetches relationships from the DB and formats them as a Mermaid diagram.
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    query = "SELECT subject, verb, object FROM relationships"
-    params = []
-    
-    if video_id:
-        query += " WHERE video_id = ?"
-        params.append(video_id)
-    elif subject:
-        query += " WHERE subject LIKE ?"
-        params.append(f"%{subject}%")
+    if USE_SUPABASE:
+        supabase = get_supabase_client()
+        query = supabase.table("viking_relationships").select("subject, verb, object")
         
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    conn.close()
+        if video_id:
+            query = query.eq("video_id", video_id)
+        elif subject:
+            query = query.ilike("subject", f"%{subject}%")
+            
+        res = query.execute()
+        rows = res.data
+    else:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        query = "SELECT subject, verb, object FROM relationships"
+        params = []
+        
+        if video_id:
+            query += " WHERE video_id = ?"
+            params.append(video_id)
+        elif subject:
+            query += " WHERE subject LIKE ?"
+            params.append(f"%{subject}%")
+            
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
     
     if not rows:
         return "No relationships found for the given criteria."

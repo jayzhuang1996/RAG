@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import networkx as nx
 from networkx.algorithms.community import greedy_modularity_communities
 from langchain_core.messages import HumanMessage
@@ -23,7 +24,6 @@ def fetch_all_relationships():
     relations = []
     if USE_SUPABASE:
         supabase = get_supabase_client()
-        # Note: In production you might want pagination, assuming <1000 for MVP
         res = supabase.table("viking_relationships").select("subject,verb,object").execute()
         relations = res.data
     else:
@@ -37,17 +37,14 @@ def fetch_all_relationships():
 
 def summarize_cluster(nodes: list, graph: nx.Graph) -> dict:
     """Takes a list of nodes in a community, looks at their internal edges, and uses LLM to name/summarize it."""
-    # Find all edges between these nodes
     edges = []
     for u in nodes:
         for v in nodes:
             if graph.has_edge(u, v):
                 verb = graph[u][v].get('verb', 'connected_to')
                 edges.append(f"{u} -> {verb} -> {v}")
-    
-    # Deduplicate edges
     edges = list(set(edges))
-    
+
     prompt = f"""You are an elite Knowledge Graph architect. 
 I have clustered a group of heavily connected entities from podcast transcripts.
 Look at the entities and their connections, and provide a broad, thematic 'Title' for this community (e.g. 'Agentic AI Workflows', 'Compute Hardware', 'Venture Capital').
@@ -62,18 +59,27 @@ Respond strictly in valid JSON format ONLY:
 {{"title": "Thematic Title", "summary": "Two sentence summary."}}
 """
     llm = get_moonshot_llm(temperature=0.2)
-    response = llm.invoke([HumanMessage(content=prompt)])
-    
-    try:
-        data = response.content.strip()
-        if data.startswith("```json"):
-            data = data[7:-3]
-        if data.startswith("```"):
-            data = data[3:-3]
-        return json.loads(data)
-    except Exception as e:
-        print(f"Failed to parse LLM community JSON: {e}")
-        return {"title": "Unknown Community", "summary": "Could not summarize cluster."}
+
+    # Retry with exponential backoff for Moonshot's 20 RPM rate limit
+    for attempt in range(4):
+        try:
+            response = llm.invoke([HumanMessage(content=prompt)])
+            data = response.content.strip()
+            if data.startswith("```json"):
+                data = data[7:-3]
+            if data.startswith("```"):
+                data = data[3:-3]
+            return json.loads(data)
+        except Exception as e:
+            if "429" in str(e) or "rate_limit" in str(e).lower():
+                wait = 4 ** attempt  # 1s, 4s, 16s, 64s
+                print(f"   [Rate Limit] Waiting {wait}s before retry...")
+                time.sleep(wait)
+            else:
+                print(f"   Failed to summarize cluster: {e}")
+                return {"title": "Unknown Community", "summary": "Could not summarize cluster."}
+
+    return {"title": "Unknown Community", "summary": "Rate limit exceeded after retries."}
 
 def extract_and_save_communities():
     print("Fetching relationships...")
@@ -93,22 +99,21 @@ def extract_and_save_communities():
     print(f"Found {len(communities)} communities.")
 
     supabase = get_supabase_client() if USE_SUPABASE else None
-    
+
     if not USE_SUPABASE:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM communities") # Clear old communities
-        
+        cursor.execute("DELETE FROM communities")
+
     for i, comm in enumerate(communities):
         nodes = list(comm)
         print(f"[{i+1}/{len(communities)}] Summarizing community of size {len(nodes)}...")
-        
+
         info = summarize_cluster(nodes, G)
         title = info['title']
         summary = info['summary']
-        
         print(f"   -> Name: {title}")
-        
+
         if USE_SUPABASE:
             supabase.table("viking_communities").insert({
                 "title": title,
@@ -116,13 +121,16 @@ def extract_and_save_communities():
                 "nodes": nodes
             }).execute()
         else:
-            cursor.execute("INSERT INTO communities (title, summary, nodes) VALUES (?, ?, ?)", 
+            cursor.execute("INSERT INTO communities (title, summary, nodes) VALUES (?, ?, ?)",
                            (title, summary, json.dumps(nodes)))
-    
+
+        # Wait 4s between each cluster to respect Moonshot's 20 RPM limit
+        time.sleep(4)
+
     if not USE_SUPABASE:
         conn.commit()
         conn.close()
-        
+
     print("\n--- LightRAG Community Extraction Complete ---")
 
 if __name__ == "__main__":

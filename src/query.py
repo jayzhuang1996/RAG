@@ -83,7 +83,11 @@ def generate_answer(query: str) -> str:
     graph_triples = retrieval_output['graph_context']
 
     if not context_results and not graph_triples:
-        return "No relevant content found in the knowledge base for your query."
+        return {
+            "answer": "No relevant content found in the knowledge base for your query.",
+            "graph_data": [],
+            "sources": []
+        }
 
     context_text, sources = _build_context_block(context_results)
     graph_text = _build_graph_block(graph_triples)

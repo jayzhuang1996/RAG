@@ -1,64 +1,81 @@
-# Podcast RAG - Technical Backbone TODO
+# Podcast RAG — Current State & Next Steps
+_Last updated: 2026-04-23_
 
-## 1. Governance & Agent Rules [DONE]
-- [x] Import `.cursorrules` from Stocks project
-- [x] Codify permanent reasoning loop in `antigravity.md`
-- [x] Initialize `tasks/todo.md` and `tasks/lessons.md`
+---
 
-## 2. Phase 1-5 Core System [DONE & VERIFIED]
-- [x] SQLite Schema & DB Infrastructure
-- [x] YouTube Scraper & Transcript Engine
-- [x] Moonshot AI Metadata Extraction
-- [x] Parent-Child Chunking Strategy
-- [x] MiniLM Embedding & ChromaDB Storage
-- [x] Hybrid Retriever (BM25 + Vector + RRF + Cohere Rerank)
+## WHERE YOU ARE NOW
 
-## 3. Phase 6: Query Interface [DONE]
-- [x] Implement `src/query.py` (Moonshot AI Answer Synthesis)
-- [x] Citations: `[Source N]` format with episode titles
-- [x] Streaming response implementation
-- [x] Implement `main.py` CLI
+### Infrastructure (All Green ✅)
+- **API:** Live at `zonal-expression-production.up.railway.app` — FastAPI + LangGraph 3-agent pipeline
+- **Frontend:** Live at `lightgraph-git-main-jayzhuang9-gmailcoms-projects.vercel.app`
+- **Cron:** Railway runs `--step scrape` daily at midnight UTC (discovers new video IDs only)
+- **DB:** 22,474 chunks across 44 processed episodes in Supabase
 
-## 4. Phase 8: GraphRAG & Visualization [IN PROGRESS]
-- [x] Implement `src/graph_viz.py` (Relationship "Drawing" - Mermaid/JSON output)
-- [x] Add `main.py graph` command
-- [x] Externalize `SYSTEM_PROMPT` to `config/prompts.yaml` for user customization
+### Channel Coverage (Ground Truth)
+| Channel | Status |
+|---------|--------|
+| Lex Fridman | ✅ 11 episodes processed |
+| All-In Podcast | ✅ 12 processed, 1 error |
+| Huberman Lab | ✅ 16 episodes processed |
+| Joe Rogan | ✅ 10 processed, 1 error |
+| PBD Podcast | ✅ 10 processed, 1 error |
+| Diary of a CEO | ⚠️ 1 processed, 10 errors (YouTube block) |
+| Tucker Carlson | ❌ 11 errors (YouTube block) |
+| Modern Wisdom | ❌ 10 errors (YouTube block) |
+| My First Million | ❌ 10 errors (YouTube block) |
+| Sam Harris | ❌ 10 errors (YouTube block) |
+| Theo Von | ❌ 10 errors (YouTube block) |
+| Hard Fork | ❌ 5 errors (YouTube block) |
 
-## 5. Phase 9: Cloud Migration & Railway Setup [IN PROGRESS]
-- [x] Refactor core scripts (`db.py`, `embeddings.py`, `retrieval.py`, etc.) for Supabase
-- [x] Finalize Supabase Schema (Ensure `viking_metadata` and `match_chunks` RPC exist)
-- [x] Run Full Data Migration (`src/migrate_to_cloud.py`)
-- [x] Create Dockerfile, railway.json, and api.py
-- [x] Prepare and commit Git repository
-- [x] Integrate full ingestion pipeline (1-4) in `src/ingest.py`
-- [x] Deploy Query API to **Railway** (FastAPI) — verified live
-- [ ] **CRITICAL: Set up Railway Cron for Ingestion Worker**
-  - Go to Railway → Ingester Service → Settings
-  - Custom Start Command: `python src/ingest.py --limit 10`
-  - Cron Schedule: `0 0 * * *` (midnight UTC daily)
-  - Ensure all env vars are copied from the API service
+**Root cause of all errors:** YouTube rate-limits transcript fetching by IP after too many requests in quick succession. Run `python src/ingest.py --step transcript` again tomorrow with a fresh IP session to clear them.
 
-## 6. Phase 11: Graph-Augmented Generation [DONE]
-- [x] Upgrade `src/query.py` to auto-detect entities from user query
-- [x] Fetch all Subject/Verb/Object triples for those entities from `viking_relationships`
-- [x] Inject graph relationships as a structured block into the Moonshot AI context
-- [x] Update `api.py` to return graph data alongside the text answer (for frontend to render)
-- [x] Push to Railway → auto-deploy
+---
 
-## 7. Phase 10: Enterprise UI Dashboard (Next.js & Recharts) [PLANNED]
-- [ ] Initialize Next.js project on Vercel
-- [ ] Build Chat Interface for Querying the LangGraph Backend
-- [ ] Integrate **Recharts** (or Nivo) for Semantic Heatmaps (Guest x Concepts)
-- [ ] Build Expandable Entity Profile Cards (No D3.js Hairballs)
-- [ ] **Vercel Setup & Deployment**
-  - Connect GitHub repository to Vercel dashboard
-  - Configure Environment Variables (point to Railway API URL)
+## KNOWN ISSUES
+- [ ] `viking_health` table missing in Supabase — health monitor logs fail silently (cosmetic only)
+- [ ] Cohere Trial key hits 100k token/min rate limit on large embed batches — retries work but slow
+- [ ] 6 new channels have zero processed content — need IP cooldown before retrying transcripts
 
-## 8. Phase 12: Multi-Agent Synthesis & LightRAG [IN PROGRESS]
-- [ ] Implement robust **LightRAG** knowledge hierarchy (Global vs Local contexts)
-- [x] Implement **LangGraph** synthesis pipeline (Researcher -> Analyst -> Copywriter)
-- [ ] Extract "Communities" from flat triplets for Sunburst Data
+---
 
-## 9. Final End-to-End Verification
-- [ ] Verify LangGraph generates premium analyst-grade reports
-- [ ] Verify Next.js renders interactive Semantic Heatmap and Sunburst cleanly
+## NEXT STEPS (Prioritized)
+
+### Priority 1 — Fill the Database (Do Tomorrow)
+```bash
+# Run after a few hours cooldown on YouTube IP
+python src/ingest.py --step transcript
+python src/ingest.py --step embed
+```
+This will unblock Tucker, Modern Wisdom, Sam Harris, Theo Von, My First Million, Hard Fork.
+Target: ~80+ processed episodes, ~40,000+ chunks.
+
+### Priority 2 — Decide the Product Direction
+**Option A: Personal intelligence tool** → No further dev needed. Use as-is.
+**Option B: Product/Demo for clients** → Need landing page, auth, curated sample queries, pitch deck.
+
+### Priority 3 — Upgrade Cohere to Production Key
+Current trial key hits rate limits on embed batches. At $0-20/mo production tier,
+embedding becomes instant and reliable.
+https://dashboard.cohere.com/api-keys
+
+### Priority 4 — (If Product) Rebuild Frontend as Demo
+- Clean landing page: one-sentence value prop
+- 5-6 curated demo queries that show off peak output
+- Remove technical UI chrome (pipeline status labels, etc.)
+- Add share/export for briefings
+
+### Priority 5 — Cohere Prod Key + Upgrade Rerank Model
+Swap `rerank-english-v2.0` → `rerank-english-v3.0` for better retrieval quality.
+
+---
+
+## COMPLETED (Archived)
+- [x] SQLite → Supabase cloud migration
+- [x] PyTorch/SentenceTransformers → Cohere API (removed 1.5GB from container)
+- [x] BM25 in-memory index removed (prevented 500MB OOM crashes)
+- [x] LangGraph 3-agent pipeline (Researcher → Analyst → Writer)
+- [x] LightRAG community summaries injected as macro context
+- [x] Railway split into 2 services: API (24/7) + Cron (scrape only)
+- [x] 11 channels configured in `config/channels.yaml`
+- [x] Per-channel scrape errors made non-fatal
+- [x] Vercel redeployed pointing to new Railway API URL
