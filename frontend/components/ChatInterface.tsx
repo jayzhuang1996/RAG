@@ -9,7 +9,7 @@ import GraphPanel from './GraphPanel';
 interface Message {
   role: 'user' | 'assistant' | 'error';
   content: string;
-  sources?: { index: number; video_id: string; title: string }[];
+  sources?: { index: number; video_id: string; title: string; text?: string }[];
   graph_data?: { subject: string; verb: string; object: string }[];
 }
 
@@ -25,6 +25,7 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeGraph, setActiveGraph] = useState<Message | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ title: string; text: string; index: number } | null>(null);
 
   const handleSubmit = async (q?: string) => {
     const question = q || query;
@@ -194,19 +195,27 @@ export default function ChatInterface() {
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {msg.sources.map((s, idx) => (
-                          <a 
+                          <button
                             key={idx} 
-                            href={`https://youtube.com/watch?v=${s.video_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const text = s.text || "Transcript chunk not provided by backend.";
+                              setSelectedSource({ title: s.title, text, index: s.index });
+                            }}
                             className="source-pill"
-                            style={{ textDecoration: 'none', transition: 'transform 0.15s', cursor: 'pointer' }}
+                            style={{ 
+                              textDecoration: 'none', 
+                              transition: 'transform 0.15s', 
+                              cursor: 'pointer',
+                              border: 'none',
+                              fontFamily: 'inherit'
+                            }}
                             onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                             onMouseOut={e => e.currentTarget.style.transform = 'none'}
                           >
                             <BookOpen size={10} />
                             [{s.index}] {s.title}
-                          </a>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -214,22 +223,23 @@ export default function ChatInterface() {
 
                   {/* Graph toggle */}
                   {msg.graph_data && msg.graph_data.length > 0 && (
-                    <button
-                      onClick={() => setActiveGraph(activeGraph === msg ? null : msg)}
-                      style={{
-                        marginTop: '12px',
-                        background: activeGraph === msg ? 'var(--accent-purple-dim)' : 'var(--bg-hover)',
-                        border: `1px solid ${activeGraph === msg ? 'var(--accent-purple)' : 'var(--border)'}`,
-                        borderRadius: '8px',
-                        padding: '6px 14px',
-                        fontSize: '12px',
-                        color: activeGraph === msg ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {msg.graph_data.length} relationships — {activeGraph === msg ? 'Hide' : 'Show'} graph →
-                    </button>
+                    <div style={{ marginTop: '16px' }}>
+                      <button
+                        onClick={() => setActiveGraph(activeGraph === msg ? null : msg)}
+                        style={{
+                          background: 'var(--bg-card)',
+                          color: 'var(--accent-main)',
+                          border: '1px solid var(--accent-main)',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {activeGraph === msg ? 'Hide Structural Graph' : 'View Structural Graph'}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}

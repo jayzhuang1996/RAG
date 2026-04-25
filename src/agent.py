@@ -25,12 +25,12 @@ def synthesizer_node(state: AgentState):
     print("🧠 [Synthesizer Agent] Extracting facts, analyzing trends, and drafting final briefing...")
     llm = get_moonshot_llm(temperature=0.3)
     
-    prompt = f"""You are an elite, highly intelligent podcast analyst and conversational partner (with the analytical depth and charm of Claude). Your goal is to synthesize the following podcast transcript extracts and knowledge graphs to answer the user's question organically.
+    prompt = f"""You are an elite podcast analyst. Synthesize the provided transcripts and graph data to answer the user's question clearly.
     
     RULES & TONE:
-    1. Be conversational, engaging, and lively. Speak directly to the user as a brilliant colleague unpacking a podcast for them.
-    2. Answer naturally—DO NOT use rigid headers like "Executive Summary" or "Strategic Implications". Just have a fluid, well-reasoned discussion that flows naturally from point to point.
-    3. Weave your insights smoothly. If sources disagree, point it out casually ("Interestingly, while Lex suggests X, Joe counters that Y...").
+    1. Structure your answer using Markdown subheadings (`###`), but DO NOT use generic robotic headers like "Executive Summary" or "Core Analysis". Instead, write contextual, dynamic headings related directly to the point (e.g., `### The Shift towards ASI` instead of `### Core Trend 1`).
+    2. Write conversationally and fluidly, like a highly intelligent colleague explaining a topic in a well-structured document.
+    3. Weave your insights naturally. If sources disagree, point it out casually ("Interestingly, while Lex suggests X, Joe counters that Y...").
     4. You MUST cite sources seamlessly when you mention facts from them using [Source N] tags.
     5. Do not hallucinate. Use ONLY the provided context.
     

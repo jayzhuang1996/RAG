@@ -52,7 +52,7 @@ def _build_context_block(context_results):
             
             video_title_map[video_id] = title
             video_to_index[video_id] = next_index
-            sources.append({'index': next_index, 'video_id': video_id, 'title': title})
+            sources.append({'index': next_index, 'video_id': video_id, 'title': title, 'text': c['parent_text']})
             next_index += 1
             
         current_idx = video_to_index[video_id]

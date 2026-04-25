@@ -1,9 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
-
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
+import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface Community {
   id: number;
@@ -19,110 +17,84 @@ interface Props {
 }
 
 const PALETTE = [
-  '#2A7B9B', // accent-blue
-  '#7B6DAA', // accent-purple
-  '#2D8B55', // accent-teal
-  '#D4A843', // accent-amber
-  '#D94F30', // accent-main/vermillion
-  '#22c55e', 
-  '#f97316', 
-  '#06b6d4'
+  '#2A7B9B', '#7B6DAA', '#2D8B55', '#D4A843', '#D94F30', '#22c55e', '#f97316', '#06b6d4'
 ];
 
+const CustomizedContent = (props: any) => {
+  const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        style={{
+          fill: depth < 2 ? colors[Math.floor((index / root.children.length) * 6)] : 'rgba(255,255,255,0)',
+          stroke: '#FDF9F3',
+          strokeWidth: 2 / (depth + 1e-10),
+          strokeOpacity: 1,
+        }}
+      />
+      {depth === 1 && width > 40 && height > 30 ? (
+        <text x={x + 8} y={y + 18} fill="#fff" fontSize={14} fontWeight={600} fontFamily="var(--font-display)">
+          {name}
+        </text>
+      ) : null}
+      {depth === 2 && width > 30 && height > 20 ? (
+        <text x={x + 4} y={y + 12} fill="rgba(255,255,255,0.9)" fontSize={10} fontFamily="var(--font-mono)">
+          {name}
+        </text>
+      ) : null}
+    </g>
+  );
+};
+
 export default function ClusterVisualizer({ communities, width, height = 500 }: Props) {
-  const graphData = useMemo(() => {
-    const nodes: any[] = [];
-    const links: any[] = [];
-
-    communities.forEach((c, i) => {
-      const color = PALETTE[i % PALETTE.length];
-      const communityId = `cluster_${c.id}`;
-      
-      // Central cluster node
-      nodes.push({
-        id: communityId,
-        name: c.title || `Cluster ${c.id}`,
-        val: 5, // make it significantly larger
-        color,
-        isCluster: true,
-      });
-
-      // Parse entities
+  const data = useMemo(() => {
+    const formattedData = communities.map((c, i) => {
       let entities: string[] = [];
       if (Array.isArray(c.nodes)) entities = c.nodes;
       else {
         try { entities = JSON.parse(c.nodes || '[]'); } catch { entities = []; }
       }
+      
+      const children = entities.slice(0, 15).map(e => ({
+        name: e,
+        size: 10 + Math.random() * 20 // Arbitrary size for visual variance
+      }));
 
-      // Add entity nodes and link to cluster
-      entities.slice(0, 15).forEach(entity => {
-        // avoid pure duplicates, though in different clusters it might map multiple times
-        const entityId = `entity_${entity}`;
-        if (!nodes.find(n => n.id === entityId)) {
-          nodes.push({
-            id: entityId,
-            name: entity,
-            val: 1.5,
-            color: '#6B6560', // text-secondary
-            isCluster: false,
-          });
-        }
-        
-        links.push({
-          source: communityId,
-          target: entityId,
-          color: `${color}80` // semi-transparent link
-        });
-      });
+      return {
+        name: c.title || `Cluster ${c.id}`,
+        children: children.length > 0 ? children : [{ name: 'Empty', size: 10 }]
+      };
     });
 
-    return { nodes, links };
+    return [
+      {
+        name: 'Knowledge Map',
+        children: formattedData
+      }
+    ];
   }, [communities]);
 
   return (
     <div style={{ background: 'var(--bg-panel)', width: '100%', height: '100%', position: 'relative' }}>
-      <ForceGraph2D
-        width={width}
-        height={height}
-        graphData={graphData}
-        nodeColor={(node: any) => node.color}
-        linkColor={(link: any) => link.color}
-        linkWidth={1}
-        nodeRelSize={4}
-        onNodeClick={(node: any) => {
-          console.log(node);
-        }}
-        nodeCanvasObject={(node: any, ctx: any, globalScale: any) => {
-          const label = node.name;
-          const fontSize = node.isCluster ? 14 / globalScale : 10 / globalScale;
-          ctx.font = `${node.isCluster ? '600' : '400'} ${fontSize}px "DM Sans", sans-serif`;
-          
-          if (globalScale > 1 || node.isCluster) {
-             const textWidth = ctx.measureText(label).width;
-             const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.4); 
-             
-             ctx.beginPath();
-             ctx.arc(node.x, node.y, node.val * 2, 0, 2 * Math.PI, false);
-             ctx.fillStyle = node.color;
-             ctx.fill();
-
-             // Label block
-             ctx.fillStyle = node.isCluster ? 'rgba(250, 247, 242, 0.9)' : 'rgba(253, 249, 243, 0.7)'; // warm editorial backgrounds
-             ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + (node.val * 2) + 1, bckgDimensions[0], bckgDimensions[1]);
-
-             // Label text
-             ctx.textAlign = 'center';
-             ctx.textBaseline = 'middle';
-             ctx.fillStyle = node.isCluster ? node.color : '#2C2A28';
-             ctx.fillText(label, node.x, node.y + (node.val * 2) + 1 + bckgDimensions[1]/2);
-          } else {
-             ctx.beginPath();
-             ctx.arc(node.x, node.y, node.val * 2, 0, 2 * Math.PI, false);
-             ctx.fillStyle = node.color;
-             ctx.fill();
-          }
-        }}
-      />
+      <ResponsiveContainer width="100%" height={height}>
+        <Treemap
+          data={data}
+          dataKey="size"
+          stroke="#fff"
+          fill="#D94F30"
+          content={<CustomizedContent colors={PALETTE} />}
+        >
+          <Tooltip 
+            contentStyle={{ borderRadius: '8px', border: 'none', background: 'var(--bg-card)', boxShadow: 'var(--shadow-md)', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+            itemStyle={{ color: 'var(--accent-main)' }}
+          />
+        </Treemap>
+      </ResponsiveContainer>
     </div>
   );
 }
