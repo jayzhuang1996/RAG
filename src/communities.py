@@ -45,18 +45,24 @@ def summarize_cluster(nodes: list, graph: nx.Graph) -> dict:
                 edges.append(f"{u} -> {verb} -> {v}")
     edges = list(set(edges))
 
-    prompt = f"""You are an elite Knowledge Graph architect. 
-I have clustered a group of heavily connected entities from podcast transcripts.
-Look at the entities and their connections, and provide a broad, thematic 'Title' for this community (e.g. 'Agentic AI Workflows', 'Compute Hardware', 'Venture Capital').
-Then write a 2-sentence 'Summary' explaining what this community is about.
+    prompt = f"""You are a Strategic Intelligence Analyst for a top-tier venture fund.
+I have clustered a group of heavily connected entities from recent high-signal podcast transcripts (Lex Fridman, All-In, Huberman, etc.).
+
+Your task is to analyze this 'cluster' and provide a Strategic Intelligence Briefing.
 
 Entities: {', '.join(nodes)}
 
-Connections:
+Connections observed in the Graph:
 {chr(10).join(edges)}
 
-Respond strictly in valid JSON format ONLY:
-{{"title": "Thematic Title", "summary": "Two sentence summary."}}
+Respond STRICTLY in valid JSON format ONLY:
+{{
+  "title": "A punchy, editorial headline (e.g., 'The GPU Arms Race' or 'The Emergence of Agentic OS')",
+  "summary": "A 1-sentence macro-summary of the cluster's relevance.",
+  "insight": "High-level strategic 'So-What'. Why should a business leader care about this specific grouping of entities right now?",
+  "tensions": "What are the major disagreements or technical hurdles mentioned between these entities?",
+  "top_entities": ["The 3-5 most influential entities in this cluster"]
+}}
 """
     llm = get_moonshot_llm(temperature=0.2)
 
@@ -117,19 +123,28 @@ def extract_and_save_communities():
         print(f"[{i+1}/{len(communities)}] Summarizing community of size {len(nodes)}...")
 
         info = summarize_cluster(nodes, G)
-        title = info['title']
-        summary = info['summary']
+        title = info.get('title', 'Unknown Cluster')
+        
+        # Pack rich metadata into the summary field since we have schema rigidity
+        rich_data = {
+            "summary": info.get('summary', ''),
+            "insight": info.get('insight', ''),
+            "tensions": info.get('tensions', ''),
+            "top_entities": info.get('top_entities', [])
+        }
+        summary_str = json.dumps(rich_data)
+        
         print(f"   -> Name: {title}")
 
         if USE_SUPABASE:
             supabase.table("viking_communities").insert({
                 "title": title,
-                "summary": summary,
+                "summary": summary_str,
                 "nodes": nodes
             }).execute()
         else:
             cursor.execute("INSERT INTO communities (title, summary, nodes) VALUES (?, ?, ?)",
-                           (title, summary, json.dumps(nodes)))
+                           (title, summary_str, json.dumps(nodes)))
 
         # Wait 4s between each cluster to respect Moonshot's 20 RPM limit
         time.sleep(4)
