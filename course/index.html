@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Podcast RAG: How Your AI Knowledge Base Works</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    :root {
+      --color-accent:       #2A7B9B;
+      --color-accent-hover: #1F6280;
+      --color-accent-light: #E4F2F7;
+      --color-accent-muted: #5A9DB8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Podcast RAG: How Your AI Knowledge Base Works</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="What This App Does" role="tab" aria-label="Module 1: What This App Does"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="The Cast of Characters" role="tab" aria-label="Module 2: The Cast of Characters"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="How Podcasts Become Searchable" role="tab" aria-label="Module 3: How Podcasts Become Searchable"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="Finding the Right Answer" role="tab" aria-label="Module 4: Finding the Right Answer"></button>
+        <button class="nav-dot" data-target="module-5" data-tooltip="The Outside World" role="tab" aria-label="Module 5: The Outside World"></button>
+        <button class="nav-dot" data-target="module-6" data-tooltip="chunking.py Deep Dive" role="tab" aria-label="Module 6: chunking.py Deep Dive"></button>
+        <button class="nav-dot" data-target="module-7" data-tooltip="retrieval.py Deep Dive" role="tab" aria-label="Module 7: retrieval.py Deep Dive"></button>
+        <button class="nav-dot" data-target="module-8" data-tooltip="query.py Deep Dive" role="tab" aria-label="Module 8: query.py Deep Dive"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+<section class="module" id="module-1">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 1</span>
+      <h1 class="module-title">What Your AI Knowledge Base Actually Does</h1>
+      <p class="module-subtitle">You built something powerful — here's what's happening under the hood every time you ask it a question.</p>
+    </div>
+
+    <div class="screen">
+      <h2>The Problem It Solves</h2>
+      <p>Imagine you've watched 200 hours of podcast content — <em>Lex Fridman, My First Million, All-In</em> — and somewhere in there someone said something brilliant about AI safety, or pricing strategy, or fundraising. But you have no idea which episode, which hour, or which speaker.</p>
+      <p>You could search YouTube. But YouTube search only matches video titles and descriptions — not what was <em>said</em>. You'd have to scrub through hours of tape yourself.</p>
+      <p>Your Podcast RAG app solves this. You ask it: <em>"What did Sam Altman say about AI safety?"</em> — and it reads <strong>the actual transcript text</strong> of every episode you've ingested, finds the most relevant passages, and gives you a synthesized answer with sources.</p>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">What RAG means</strong>
+          <p><span class="term" data-definition="RAG stands for Retrieval-Augmented Generation. Instead of asking an AI to answer from its training data alone, you first retrieve specific documents that are relevant to the question, then feed those documents to the AI as context. The AI generates its answer based on your real data, not guesses.">RAG</span> = Retrieval-Augmented Generation. You're not asking a generic AI to guess. You're giving it the actual podcast transcripts as evidence, and it answers from there.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Journey of a Question</h2>
+      <p>When you type <code>python main.py query "What did Sam Altman say about AI safety?"</code>, here is the complete sequence of events:</p>
+
+      <div class="flow-animation" data-steps='[
+        {"highlight":"flow-actor-1","label":"You type your question into the terminal"},
+        {"highlight":"flow-actor-1","label":"main.py receives it and routes it to query.py","packet":true,"from":"actor-1","to":"actor-2"},
+        {"highlight":"flow-actor-2","label":"query.py asks the HybridRetriever to find relevant passages","packet":true,"from":"actor-2","to":"actor-3"},
+        {"highlight":"flow-actor-3","label":"HybridRetriever searches ChromaDB (vector) and BM25 (keyword) simultaneously"},
+        {"highlight":"flow-actor-3","label":"Results are fused and reranked by Cohere AI","packet":true,"from":"actor-3","to":"actor-4"},
+        {"highlight":"flow-actor-4","label":"Top 5 transcript passages are returned to query.py","packet":true,"from":"actor-4","to":"actor-2"},
+        {"highlight":"flow-actor-2","label":"query.py builds a prompt: question + passages","packet":true,"from":"actor-2","to":"actor-5"},
+        {"highlight":"flow-actor-5","label":"Moonshot AI reads the context and writes your answer","packet":true,"from":"actor-5","to":"actor-1"},
+        {"highlight":"flow-actor-1","label":"You see the answer in your terminal, with sources cited"}
+      ]'>
+        <div class="flow-actors">
+          <div class="flow-actor" id="flow-actor-1">
+            <div class="flow-actor-icon">👤</div>
+            <span>You</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-2">
+            <div class="flow-actor-icon">🔀</div>
+            <span>query.py</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-3">
+            <div class="flow-actor-icon">🔍</div>
+            <span>Retriever</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-4">
+            <div class="flow-actor-icon">🏆</div>
+            <span>Cohere</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-5">
+            <div class="flow-actor-icon">🤖</div>
+            <span>Moonshot AI</span>
+          </div>
+        </div>
+        <div class="flow-packet" id="flow-packet"></div>
+        <div class="flow-step-label" id="flow-label">Click "Next Step" to trace your question through the system</div>
+        <div class="flow-controls">
+          <button class="btn flow-next-btn">Next Step</button>
+          <button class="btn flow-reset-btn">Restart</button>
+          <span class="flow-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Two Modes: Ingest and Query</h2>
+      <p>The app has two completely separate jobs — like a library system that has both a <em>cataloguing department</em> and a <em>reference desk</em>. They never run at the same time.</p>
+
+      <div class="pattern-cards">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon" style="background: var(--color-actor-1)">📥</div>
+          <h4 class="pattern-title">Ingest Mode</h4>
+          <p class="pattern-desc">Run once (or weekly). Scrapes YouTube channels, downloads transcripts, chops text into searchable pieces, and stores them in the database. This is the cataloguing department — slow, thorough, runs in the background.</p>
+          <code>python main.py ingest --limit 50</code>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon" style="background: var(--color-actor-2)">❓</div>
+          <h4 class="pattern-title">Query Mode</h4>
+          <p class="pattern-desc">Run anytime. Takes your question, searches the already-processed database, and returns an answer in seconds. This is the reference desk — fast, because all the hard work was done upfront.</p>
+          <code>python main.py query "your question"</code>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">🏗️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Why separate these?</strong>
+          <p>Processing 200 hours of video takes 30 minutes and costs money (transcription API calls). Answering a question takes 3 seconds. Keeping them separate means you pay the big cost once, then query for free as many times as you want.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Quick Check</h2>
+      <div class="quiz-container" id="quiz-module1">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Exactly — RAG retrieves your actual transcript text and feeds it to the AI as evidence. The AI answers from that evidence, not from guesses."
+             data-explanation-wrong="Not quite. The AI doesn't answer from its own training. It reads the specific passages your retrieval system found, then answers from those.">
+          <h3 class="quiz-question">When you ask your RAG app a question, where does the answer come from?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The AI's training data — it already knows about these podcasts</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Specific transcript passages retrieved from your local database, fed to the AI as context</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>A live YouTube search at query time</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-2">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 2</span>
+      <h1 class="module-title">Meet the Cast of Characters</h1>
+      <p class="module-subtitle">Every file in this codebase has one job. Here's who everyone is and what they're responsible for.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Think of it Like a Restaurant Kitchen</h2>
+      <p>A professional kitchen has specialized roles: the expediter takes orders, the prep cook does the chopping, the line cook handles the actual cooking, and the sommelier pairs the wine. No one person does everything — each role has a defined responsibility.</p>
+      <p>Your RAG app is the same. Here are the six main "staff members" and their roles:</p>
+
+      <div class="file-tree">
+        <div class="file-tree-item file-tree-dir">📁 RAG/</div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 1.5rem">📄 <strong>main.py</strong> <span style="color: var(--color-text-muted)">— The expediter: takes your command and routes it to the right cook</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 1.5rem">📄 <strong>api.py</strong> <span style="color: var(--color-text-muted)">— The front-of-house: accepts HTTP requests from external apps</span></div>
+        <div class="file-tree-item file-tree-dir" style="margin-left: 1.5rem">📁 src/</div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>ingest.py</strong> <span style="color: var(--color-text-muted)">— The prep cook: orchestrates the full ingestion workflow</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>scraper.py</strong> <span style="color: var(--color-text-muted)">— The forager: fetches YouTube video lists from channels</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>transcripts.py</strong> <span style="color: var(--color-text-muted)">— The transcriptionist: downloads spoken words as text</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>chunking.py</strong> <span style="color: var(--color-text-muted)">— The knife work: slices long transcripts into searchable pieces</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>embeddings.py</strong> <span style="color: var(--color-text-muted)">— The translator: converts text into numbers the database understands</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>retrieval.py</strong> <span style="color: var(--color-text-muted)">— The detective: finds the most relevant passages for any question</span></div>
+        <div class="file-tree-item file-tree-file" style="margin-left: 3rem">📄 <strong>query.py</strong> <span style="color: var(--color-text-muted)">— The head chef: coordinates retrieval + prompt building + AI call</span></div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Cast Chat</h2>
+      <p>Watch how these components talk to each other when you run an ingestion job:</p>
+
+      <div class="chat-window" id="chat-module2">
+        <div class="chat-messages">
+          <div class="chat-message" data-msg="0" data-sender="main" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-1)">M</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-1)">main.py</span>
+              <p>User ran <code>ingest --limit 50</code>. Ingest, you're up.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="1" data-sender="ingest" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">I</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">ingest.py</span>
+              <p>Got it. Scraper, give me the latest 50 videos from all configured channels.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="2" data-sender="scraper" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-3)">S</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-3)">scraper.py</span>
+              <p>Done. Found 50 videos. Passing the list back.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="3" data-sender="ingest" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">I</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">ingest.py</span>
+              <p>Transcripts, download the spoken words for each of these videos.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="4" data-sender="transcripts" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-4)">T</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-4)">transcripts.py</span>
+              <p>Transcripts downloaded. 50 raw text files ready.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="5" data-sender="ingest" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-2)">I</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-2)">ingest.py</span>
+              <p>Chunking, take each transcript and slice it into searchable pieces. Embeddings, turn those pieces into numbers and store them.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="6" data-sender="embeddings" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-5)">E</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-5)">embeddings.py</span>
+              <p>All chunks embedded and stored in ChromaDB. 2,847 vectors saved.</p>
+            </div>
+          </div>
+          <div class="chat-message" data-msg="7" data-sender="main" style="display:none">
+            <div class="chat-avatar" style="background: var(--color-actor-1)">M</div>
+            <div class="chat-bubble">
+              <span class="chat-sender" style="color: var(--color-actor-1)">main.py</span>
+              <p>Ingestion complete. Ready for queries.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-typing" id="chat-typing" style="display:none">
+          <div class="chat-avatar" id="typing-avatar">?</div>
+          <div class="chat-typing-dots">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+
+        <div class="chat-controls">
+          <button class="btn chat-next-btn">Next Message</button>
+          <button class="btn chat-all-btn">Play All</button>
+          <button class="btn chat-reset-btn">Replay</button>
+          <span class="chat-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Two Databases</h2>
+      <p>Your app actually uses two different storage systems, and each is optimized for a different kind of search. Think of them as two different card catalogues in the same library:</p>
+
+      <div class="pattern-cards">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+          <div class="pattern-icon" style="background: var(--color-actor-3)">🗄️</div>
+          <h4 class="pattern-title">ChromaDB (or Supabase)</h4>
+          <p class="pattern-desc">Stores text chunks as <span class="term" data-definition="A vector is a list of numbers (like [0.23, -0.87, 0.45, ...]) that represents the meaning of a piece of text. Two chunks that mean similar things will have very similar number lists, even if they use completely different words.">vectors</span> — numbers that capture the <em>meaning</em> of each passage. Finds results that are semantically similar to your question, even if they use different words.</p>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+          <div class="pattern-icon" style="background: var(--color-actor-4)">📝</div>
+          <h4 class="pattern-title">SQLite / BM25 Index</h4>
+          <p class="pattern-desc">Stores raw text and builds a keyword index. <span class="term" data-definition="BM25 is an algorithm that ranks documents by how often your search terms appear in them, adjusted for document length. It&apos;s what most search engines used before AI. Very fast, very reliable for exact keyword matches.">BM25</span> finds results that contain the <em>exact words</em> from your question — great for proper nouns like names and company names.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">Why use both?</strong>
+          <p>If you search "Altman on AGI timeline," vector search finds semantically related passages even if they say "artificial general intelligence schedule." BM25 finds passages that literally contain "Altman." Using both together — called <strong>hybrid search</strong> — catches results that either method alone would miss.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Match the Actor to the Job</h2>
+      <div class="dnd-container">
+        <div class="dnd-chips">
+          <div class="dnd-chip" draggable="true" data-answer="scraper">scraper.py</div>
+          <div class="dnd-chip" draggable="true" data-answer="chunking">chunking.py</div>
+          <div class="dnd-chip" draggable="true" data-answer="retrieval">retrieval.py</div>
+          <div class="dnd-chip" draggable="true" data-answer="query">query.py</div>
+        </div>
+        <div class="dnd-zones">
+          <div class="dnd-zone" data-correct="scraper">
+            <p class="dnd-zone-label">Fetches the list of YouTube videos from a channel</p>
+            <div class="dnd-zone-target">Drop here</div>
+          </div>
+          <div class="dnd-zone" data-correct="chunking">
+            <p class="dnd-zone-label">Slices a 3-hour transcript into 250-token pieces</p>
+            <div class="dnd-zone-target">Drop here</div>
+          </div>
+          <div class="dnd-zone" data-correct="retrieval">
+            <p class="dnd-zone-label">Runs BM25 + vector search and fuses the results</p>
+            <div class="dnd-zone-target">Drop here</div>
+          </div>
+          <div class="dnd-zone" data-correct="query">
+            <p class="dnd-zone-label">Orchestrates retrieval, builds the prompt, calls Moonshot AI</p>
+            <div class="dnd-zone-target">Drop here</div>
+          </div>
+        </div>
+        <button onclick="checkDnD()">Check Matches</button>
+        <button onclick="resetDnD()">Reset</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-3">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 3</span>
+      <h1 class="module-title">How Podcasts Become Searchable</h1>
+      <p class="module-subtitle">The ingestion pipeline — from a YouTube URL to 2,847 searchable pieces of text.</p>
+    </div>
+
+    <div class="screen">
+      <h2>The Ingestion Pipeline</h2>
+      <p>Before you can query anything, the system needs to process raw video content into a structured, searchable form. Think of it like scanning a physical library into a digital card catalogue — it's slow to do once, but makes every future search instant.</p>
+      <p>The pipeline has four stages:</p>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          <p><strong>Scrape</strong> — Get YouTube video IDs from channels</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          <p><strong>Transcribe</strong> — Download spoken words as text</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          <p><strong>Chunk</strong> — Slice transcripts into 250-token pieces</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">4</div>
+          <p><strong>Embed</strong> — Convert text to number vectors and store</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Clever Trick: Parent-Child Chunks</h2>
+      <p>Here is the most interesting engineering decision in the whole codebase. When you slice a transcript, you don't just create one set of chunks — you create <em>two</em>:</p>
+
+      <div class="pattern-cards">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon" style="background: var(--color-actor-1)">👶</div>
+          <h4 class="pattern-title">Child Chunks (Small)</h4>
+          <p class="pattern-desc">~250 tokens (~1,000 characters). These are what get embedded into vectors and searched. Small = better semantic precision, fits inside the embedding model's limit.</p>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon" style="background: var(--color-actor-2)">👨</div>
+          <h4 class="pattern-title">Parent Chunks (Large)</h4>
+          <p class="pattern-desc">~750 tokens (~3,000 characters). These are what get returned to the AI as context. Large = more surrounding context, so the AI has enough material to give a complete answer.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">The "search small, return big" principle</strong>
+          <p>You search with the small child chunk (precise match), but you return the large parent chunk (full context). It's like finding a specific page in a book using the index, then reading the whole chapter around it — not just the one sentence.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Code Behind Chunking</h2>
+      <p>Here is the exact function from <code>chunking.py</code> that creates parent and child chunks:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">create_parent_child_chunks</span>(video_id, full_text):</span>
+<span class="code-line">  parent_chunks = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">    full_text,</span>
+<span class="code-line">    chunk_size=<span class="code-number">3000</span>,</span>
+<span class="code-line">    overlap=<span class="code-number">200</span></span>
+<span class="code-line">  )</span>
+<span class="code-line">  <span class="code-keyword">for</span> p_data <span class="code-keyword">in</span> parent_chunks:</span>
+<span class="code-line">    parent_id = str(uuid.uuid4())</span>
+<span class="code-line">    child_chunks = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">      p_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">      chunk_size=<span class="code-number">1000</span>,</span>
+<span class="code-line">      overlap=<span class="code-number">100</span></span>
+<span class="code-line">    )</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define a function that takes a full transcript and slices it up.</p>
+            <p class="tl">First pass: create big "parent" slices — each about 3,000 characters (750 words).</p>
+            <p class="tl">The 200-character overlap means consecutive chunks share some text at their edges — so a sentence split between two chunks isn't lost.</p>
+            <p class="tl">For each parent slice, now go through it again...</p>
+            <p class="tl">Give this parent a unique ID (like a random serial number).</p>
+            <p class="tl">Second pass: chop each parent into smaller "child" slices — 1,000 characters each.</p>
+            <p class="tl">Each child inherits its parent's ID, creating the family tree relationship.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>What is an Embedding?</h2>
+      <p>After chunking, every piece of text needs to be converted into a "vector" — a list of numbers — before it can be stored in ChromaDB. This is the job of <code>embeddings.py</code> using a model called <span class="term" data-definition="MiniLM is a small, fast AI model trained specifically to convert text into vectors. It takes a sentence as input and outputs 384 numbers. Two sentences that mean similar things will have similar sets of numbers — even if the words are completely different.">MiniLM</span>.</p>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">🔢</div>
+        <div class="callout-content">
+          <strong class="callout-title">Vectors in plain English</strong>
+          <p>Imagine placing every sentence in a 384-dimensional space (like a map, but with 384 axes instead of 2). Two sentences that mean the same thing end up close together on this map. When you ask a question, the system converts your question into a location, then finds the transcript chunks sitting closest to it. That's <span class="term" data-definition="Semantic search finds results based on meaning rather than exact word matches. It understands that &apos;AI safety&apos; and &apos;making sure AI doesn&apos;t hurt people&apos; are related, even though they share no words.">semantic search</span>.</p>
+        </div>
+      </div>
+
+      <div class="quiz-container" id="quiz-module3">
+        <div class="quiz-question-block"
+             data-correct="option-c"
+             data-explanation-right="Exactly — child chunks are small for precise semantic matching, but when you return results you fetch the parent (which contains more surrounding context) so the AI has enough to work with."
+             data-explanation-wrong="Not quite. The goal is to search precisely (small chunks) but return rich context (big chunks). Think: search the index, read the chapter.">
+          <h3 class="quiz-question">Why does the app create both parent and child chunks instead of just one size?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>To save storage space — smaller chunks compress better</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Because the embedding model requires exactly 1,000 character inputs</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Small chunks are more precise for searching; large chunks give the AI more context when answering</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-4">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 4</span>
+      <h1 class="module-title">Finding the Right Answer</h1>
+      <p class="module-subtitle">Why your app uses three different search methods at once — and how they work together.</p>
+    </div>
+
+    <div class="screen">
+      <h2>The Problem with a Single Search</h2>
+      <p>Imagine you're trying to find a quote by Sam Altman about "making AI systems that don't hurt people." You have two tools:</p>
+      <ul style="margin: 1rem 0; padding-left: 1.5rem; line-height: 2">
+        <li><strong>Keyword search</strong> — great if it says "Sam Altman" literally, terrible if he's referred to as "the OpenAI CEO"</li>
+        <li><strong>Semantic/vector search</strong> — great for understanding meaning ("not hurt" ≈ "safety"), terrible for exact names and rare terms</li>
+      </ul>
+      <p>Neither alone is reliable. Your app uses <em>both together</em> — a technique called <span class="term" data-definition="Hybrid search combines two different retrieval methods — keyword matching (BM25) and semantic similarity (vector search) — and merges their results. The combined result is more reliable than either method alone.">hybrid search</span> followed by a neural reranker. Here is the three-step process:</p>
+    </div>
+
+    <div class="screen">
+      <h2>Step 1 + 2: Parallel Search and Fusion</h2>
+      <p>The <code>HybridRetriever.retrieve()</code> method runs BM25 and vector search in parallel, then fuses their ranked lists using an algorithm called <span class="term" data-definition="RRF (Reciprocal Rank Fusion) is a simple formula for combining ranked lists. For each document, it adds up 1/(rank + 60) from each list. Documents that appear near the top of BOTH lists get the highest combined score. The +60 dampens the effect of being #1 vs #5 — it rewards appearing in multiple lists over being ranked first in just one.">RRF</span>:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">retrieve</span>(self, query):</span>
+<span class="code-line">  bm25 = self.<span class="code-function">search_bm25</span>(query)</span>
+<span class="code-line">  vector = self.<span class="code-function">search_vector</span>(query)</span>
+<span class="code-line">  fused = self.<span class="code-function">rrf_fusion</span>(bm25, vector)</span>
+<span class="code-line">  reranked = self.<span class="code-function">rerank</span>(query, fused)</span>
+<span class="code-line">  <span class="code-keyword">return</span> self.<span class="code-function">get_context</span>(reranked)</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">The main retrieval function — called every time you ask a question.</p>
+            <p class="tl">Run a keyword search — find chunks that contain the exact words you used.</p>
+            <p class="tl">Run a semantic search — find chunks that are meaningfully similar to your question.</p>
+            <p class="tl">Merge both ranked lists — chunks appearing near the top of both get promoted.</p>
+            <p class="tl">Pass the merged list to Cohere AI for a final neural reranking pass.</p>
+            <p class="tl">Return the parent chunks (full context) for each top result.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Step 3: The Reranker — Your Quality Filter</h2>
+      <p>After BM25 + vector search gives you 20 candidates, the fused list is passed to <span class="term" data-definition="Cohere Rerank is an AI model that reads your query and a list of candidate passages and scores each passage for how relevant it actually is to your question. Unlike BM25 or vectors, it understands the full meaning of both the query and the passage before scoring.">Cohere Rerank</span>. This is the most important quality step.</p>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">🏆</div>
+        <div class="callout-content">
+          <strong class="callout-title">Why reranking matters</strong>
+          <p>BM25 and vector search are fast but imprecise — they're doing math, not reading. Cohere actually <em>reads</em> your question and each candidate passage together before deciding which is most relevant. It catches the difference between a passage that mentions "AI safety" in passing vs. one where it's the entire subject.</p>
+        </div>
+      </div>
+
+      <p>The constants that control this are set at the top of <code>retrieval.py</code>:</p>
+
+      <div class="badge-list">
+        <div class="badge-item">
+          <code class="badge-code">VECTOR_TOP_K = 20</code>
+          <span class="badge-desc">Vector search returns its top 20 candidates before fusion</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">BM25_TOP_K = 20</code>
+          <span class="badge-desc">Keyword search also returns 20 candidates</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">RERANK_TOP_N = 5</code>
+          <span class="badge-desc">Cohere reranks all candidates and returns the final top 5 for the AI</span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">🎛️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Tuning tip for you</strong>
+          <p>If your answers feel incomplete, try increasing <code>RERANK_TOP_N</code> to 7-8. This passes more context to the AI. If answers feel unfocused or too long, decrease it. This is a dial you control.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Scenario: What Would a Senior Engineer Do?</h2>
+      <div class="quiz-container" id="quiz-module4">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Correct. The Singleton pattern means the BM25 index is built once at startup and reused for all queries. Rebuilding it on each query would add 5-10 seconds per question — totally unacceptable for a user-facing tool."
+             data-explanation-wrong="Look closely at the query.py code. There is a _retriever global variable and a get_retriever() function that checks if it has been built before. This is the Singleton pattern — built once, reused forever.">
+          <h3 class="quiz-question">Why does query.py use a global <code>_retriever</code> variable instead of creating a new HybridRetriever on every query?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>It is a bug — it should create a fresh retriever each time for consistency</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The BM25 index takes seconds to build from the database — building it once and reusing it makes queries fast</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The HybridRetriever class does not support multiple instances</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-5">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 5</span>
+      <h1 class="module-title">The Outside World</h1>
+      <p class="module-subtitle">Four external services your app depends on — and what happens if any of them goes down.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Your App Is Not an Island</h2>
+      <p>Your Podcast RAG app is the orchestrator, but it delegates the expensive or specialized work to external services. Think of your app as a conductor — it doesn't play any of the instruments, it coordinates the musicians.</p>
+      <p>Here are the four external dependencies, what they do, and what their failure mode looks like:</p>
+
+      <div class="arch-diagram">
+        <div class="arch-zone arch-zone-browser">
+          <h4 class="arch-zone-label">Your Application</h4>
+          <div class="arch-component" data-desc="Your orchestrator. Runs locally. Coordinates all other services but does very little computation itself."
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🎵</div>
+            <span>RAG App (main.py)</span>
+          </div>
+        </div>
+        <div class="arch-zone arch-zone-external">
+          <h4 class="arch-zone-label">External Services</h4>
+          <div class="arch-component" data-desc="YouTube: Source of all video metadata and transcripts. If a video has no auto-generated captions, the transcript step fails silently for that video."
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">▶️</div>
+            <span>YouTube</span>
+          </div>
+          <div class="arch-component" data-desc="Cohere Rerank API: The neural reranker that scores each candidate passage for relevance. If this API is down, the app raises a ValueError and the query fails entirely. Key: COHERE_API_KEY"
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🏆</div>
+            <span>Cohere Rerank</span>
+          </div>
+          <div class="arch-component" data-desc="Moonshot AI: The large language model that synthesizes your final answer from retrieved passages. Uses the OpenAI-compatible API. Key: MOONSHOT_API_KEY. Model: moonshot-v1-128k (128k context window)"
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🤖</div>
+            <span>Moonshot AI</span>
+          </div>
+          <div class="arch-component" data-desc="ChromaDB (local) or Supabase (cloud): The vector database storing all your embedded chunks. ChromaDB runs on your machine; Supabase runs in the cloud. Controlled by USE_SUPABASE env variable."
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🗄️</div>
+            <span>ChromaDB / Supabase</span>
+          </div>
+        </div>
+        <div class="arch-description" id="arch-desc">Click any component to learn what it does and how it fails</div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Dual-Database Architecture</h2>
+      <p>One of the most interesting architectural decisions: your app supports <em>two different database modes</em>, switchable via a single environment variable. This is called the <span class="term" data-definition="The Strategy pattern is a software design where you define an interface for an operation, then swap between multiple implementations. Here, get_connection() and get_supabase_client() are the two strategies — local SQLite vs cloud Supabase — and a single USE_SUPABASE flag switches between them without changing any query logic.">Strategy pattern</span>.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE — retrieval.py</span>
+          <pre><code>
+<span class="code-line">USE_SUPABASE = os.<span class="code-function">getenv</span>(</span>
+<span class="code-line">  <span class="code-string">"USE_SUPABASE"</span>, <span class="code-string">"false"</span></span>
+<span class="code-line">).<span class="code-function">lower</span>() == <span class="code-string">"true"</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">  res = self._supabase</span>
+<span class="code-line">    .<span class="code-function">table</span>(<span class="code-string">"viking_chunks"</span>)</span>
+<span class="code-line">    .<span class="code-function">select</span>(<span class="code-string">"id, text"</span>)</span>
+<span class="code-line">    .<span class="code-function">execute</span>()</span>
+<span class="code-line"><span class="code-keyword">else</span>:</span>
+<span class="code-line">  cursor.<span class="code-function">execute</span>(</span>
+<span class="code-line">    <span class="code-string">"SELECT id, text FROM chunks"</span></span>
+<span class="code-line">  )</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Read the USE_SUPABASE environment variable. Default: "false" (local mode).</p>
+            <p class="tl">Convert to lowercase, check if it equals "true". Result is a boolean flag.</p>
+            <p class="tl">If you set USE_SUPABASE=true in your .env file...</p>
+            <p class="tl">...queries go to Supabase (cloud Postgres database). Perfect for Railway deployments.</p>
+            <p class="tl">Otherwise...</p>
+            <p class="tl">...queries go to local SQLite. No internet required, great for development.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Environment Variables: Your App's Secret Config</h2>
+      <p>Your app reads its configuration from a <code>.env</code> file — a plain text file that stores sensitive keys and settings that should never be committed to Git. Here is what each one does:</p>
+
+      <div class="badge-list">
+        <div class="badge-item">
+          <code class="badge-code">MOONSHOT_API_KEY</code>
+          <span class="badge-desc">Your Moonshot AI key — required for query mode. Without it, every query returns a config error message.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">COHERE_API_KEY</code>
+          <span class="badge-desc">Your Cohere reranking key — required for query mode. The reranker is not optional; removing it breaks retrieval.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">USE_SUPABASE</code>
+          <span class="badge-desc">true = cloud Postgres (for production/Railway). false or absent = local SQLite (for development).</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">SUPABASE_URL + SUPABASE_KEY</code>
+          <span class="badge-desc">Only needed when USE_SUPABASE=true. Connects to your Supabase project.</span>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Never commit .env to Git</strong>
+          <p>Your <code>.gitignore</code> already excludes <code>.env</code>. These API keys are essentially passwords — whoever has them can use your paid API quota. The <code>.env.example</code> file in your repo shows the required variable names without any real values, so collaborators know what to fill in.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Final Knowledge Check</h2>
+      <div class="quiz-container" id="quiz-module5">
+        <div class="quiz-question-block"
+             data-correct="option-c"
+             data-explanation-right="Correct. Moonshot uses a 128,000 token context window, which is why it can handle multiple large parent chunks (each ~750 tokens) as context without truncation. This was a deliberate model choice."
+             data-explanation-wrong="Check module 4 again. The RERANK_TOP_N=5 setting means 5 parent chunks are returned. Each parent is ~750 tokens. That is 3,750 tokens of context for the AI — which fits easily even in a standard 4k window, let alone Moonshot's 128k.">
+          <h3 class="quiz-question">Your app uses Moonshot's "moonshot-v1-128k" model. Why does the context window size matter for a RAG system?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Larger context windows are always better — it is a marketing number</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The system prompt is very long, and the 128k window ensures there is room for it</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>RAG injects retrieved passages as context — a larger window lets you inject more evidence without hitting the limit and truncating the AI's input</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+      </div>
+
+      <div class="callout callout-accent" style="margin-top: 2rem">
+        <div class="callout-icon">🎓</div>
+        <div class="callout-content">
+          <strong class="callout-title">You now understand your RAG system end-to-end</strong>
+          <p>YouTube scraping → parent-child chunking → vector + BM25 hybrid search → RRF fusion → Cohere reranking → Moonshot synthesis. You can now describe this architecture to any engineer, debug it when something breaks, and make informed decisions about how to extend it.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-6">
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 6 · Deep Dive</span>
+      <h1 class="module-title">chunking.py — Every Line Explained</h1>
+      <p class="module-subtitle">103 lines. Two functions. The entire text-slicing engine that makes your knowledge base searchable.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Function 1: <code>chunk_text()</code> — Lines 1–42</h2>
+      <p>This is the low-level slicer. It takes a long string and cuts it into overlapping pieces of a fixed character size. Every other function in the codebase calls this one.</p>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · chunking.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> uuid</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">chunk_text</span>(text, chunk_size, overlap):</span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line">  <span class="code-string">Simple character-based chunker.</span></span>
+<span class="code-line">  <span class="code-string">Args:</span></span>
+<span class="code-line">  <span class="code-string">    text (str): Input text.</span></span>
+<span class="code-line">  <span class="code-string">    chunk_size (int): Size in characters.</span></span>
+<span class="code-line">  <span class="code-string">    overlap (int): Overlap in characters.</span></span>
+<span class="code-line">  <span class="code-string">Returns:</span></span>
+<span class="code-line">  <span class="code-string">    list of dicts: [{'text': str, ...}]</span></span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line">  <span class="code-keyword">if not</span> text:</span>
+<span class="code-line">    <span class="code-keyword">return</span> []</span>
+<span class="code-line"></span>
+<span class="code-line">  chunks = []</span>
+<span class="code-line">  start = <span class="code-number">0</span></span>
+<span class="code-line">  text_len = <span class="code-function">len</span>(text)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">while</span> start &lt; text_len:</span>
+<span class="code-line">    end = <span class="code-function">min</span>(start + chunk_size, text_len)</span>
+<span class="code-line">    chunk_text = text[start:end]</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> end &lt; text_len:</span>
+<span class="code-line">      last_space = chunk_text.<span class="code-function">rfind</span>(<span class="code-string">' '</span>)</span>
+<span class="code-line">      <span class="code-keyword">if</span> last_space != -<span class="code-number">1</span> <span class="code-keyword">and</span> last_space &gt; chunk_size * <span class="code-number">0.5</span>:</span>
+<span class="code-line">        end = start + last_space + <span class="code-number">1</span></span>
+<span class="code-line">        chunk_text = text[start:end]</span>
+<span class="code-line"></span>
+<span class="code-line">    chunks.<span class="code-function">append</span>({</span>
+<span class="code-line">      <span class="code-string">'text'</span>: chunk_text,</span>
+<span class="code-line">      <span class="code-string">'start_char'</span>: start,</span>
+<span class="code-line">      <span class="code-string">'end_char'</span>: end</span>
+<span class="code-line">    })</span>
+<span class="code-line"></span>
+<span class="code-line">    start += (chunk_size - overlap)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">return</span> chunks</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import the <span class="term" data-definition="uuid (Universally Unique Identifier) generates random IDs like '3f2a8b1c-...'. Used to give each chunk its own serial number that will never collide with another chunk's ID, even across millions of records.">uuid</span> library — used later to give each chunk a unique ID.</p>
+            <p class="tl">↵ blank line for readability</p>
+            <p class="tl">Define the function. It takes the full text, how big each slice should be (in characters), and how much consecutive slices should overlap.</p>
+            <p class="tl">↳ Start of the docstring (documentation comment).</p>
+            <p class="tl">↳ Describes what this function does in plain terms.</p>
+            <p class="tl">↳ Documents the first parameter: the raw text to slice.</p>
+            <p class="tl">↳ Documents the second parameter: maximum characters per chunk.</p>
+            <p class="tl">↳ Documents the third parameter: how many characters the next chunk re-reads from the end of the previous one.</p>
+            <p class="tl">↳ Documents what this function returns.</p>
+            <p class="tl">↳ Specifies the return type: a list of dictionaries.</p>
+            <p class="tl">↳ End of docstring.</p>
+            <p class="tl">Guard clause: if the text is empty or None, immediately return an empty list. Prevents crashes on blank transcripts.</p>
+            <p class="tl">Return early with nothing — no point running the loop on empty input.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Create an empty list that will collect all the chunk dictionaries we produce.</p>
+            <p class="tl">Set a cursor at character position 0 — we'll move this forward as we slice.</p>
+            <p class="tl">Pre-calculate the total length of the text so we don't call len() on every loop iteration.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Keep looping as long as the cursor hasn't passed the end of the text.</p>
+            <p class="tl">Calculate the end position: either start + chunk_size, or the actual end of text if we're near the finish. min() prevents going past the end.</p>
+            <p class="tl">Slice out the candidate chunk text using Python's string slicing: text[start:end].</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Only do the word-boundary check if we're NOT at the very end of the text (no point adjusting the final fragment).</p>
+            <p class="tl">Search backwards from the end of the chunk for the last space character. rfind returns -1 if not found.</p>
+            <p class="tl">If a space exists AND it's in the second half of the chunk (not near the beginning), it's safe to snap to that word boundary.</p>
+            <p class="tl">Adjust the end position to just after the space — so we don't cut a word in half.</p>
+            <p class="tl">Re-slice the text with the adjusted end position.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add a dictionary to our results list describing this chunk.</p>
+            <p class="tl">Store the actual text content of this slice.</p>
+            <p class="tl">Store where in the original document this chunk starts (character index).</p>
+            <p class="tl">Store where it ends. These positions can later be mapped to timestamps.</p>
+            <p class="tl">Close the dictionary and the append call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Advance the cursor for the next iteration. Crucially: we move forward by (chunk_size - overlap), NOT by chunk_size. This makes the next chunk start overlap characters before the end of the current one — ensuring no content falls through the cracks between slices.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Return the complete list of chunk dictionaries once the loop finishes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Function 2: <code>create_parent_child_chunks()</code> — Lines 44–103</h2>
+      <p>The orchestrator. Calls <code>chunk_text()</code> twice per transcript — once to make large parent chunks, then again on each parent to make small child chunks. Every child knows its parent's ID.</p>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · chunking.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">create_parent_child_chunks</span>(video_id, full_text):</span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line">  <span class="code-string">Generates Parent and Child chunks for a video.</span></span>
+<span class="code-line">  <span class="code-string">Strategy:</span></span>
+<span class="code-line">  <span class="code-string">  1. Create Parent Chunks (Large context).</span></span>
+<span class="code-line">  <span class="code-string">  2. Chunk each Parent into Children.</span></span>
+<span class="code-line">  <span class="code-string">  Sizes:</span></span>
+<span class="code-line">  <span class="code-string">  - Parent: ~3000 chars (~750 tokens)</span></span>
+<span class="code-line">  <span class="code-string">  - Child: ~1000 chars (~250 tokens)</span></span>
+<span class="code-line">  <span class="code-string">  - Overlap: 200 chars</span></span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line"></span>
+<span class="code-line">  parent_chunks_data = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">    full_text,</span>
+<span class="code-line">    chunk_size=<span class="code-number">3000</span>,</span>
+<span class="code-line">    overlap=<span class="code-number">200</span></span>
+<span class="code-line">  )</span>
+<span class="code-line"></span>
+<span class="code-line">  all_chunks = []</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">for</span> p_idx, p_data <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(parent_chunks_data):</span>
+<span class="code-line">    parent_id = str(uuid.<span class="code-function">uuid4</span>())</span>
+<span class="code-line"></span>
+<span class="code-line">    all_chunks.<span class="code-function">append</span>({</span>
+<span class="code-line">      <span class="code-string">'id'</span>: parent_id,</span>
+<span class="code-line">      <span class="code-string">'video_id'</span>: video_id,</span>
+<span class="code-line">      <span class="code-string">'text'</span>: p_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">      <span class="code-string">'type'</span>: <span class="code-string">'parent'</span>,</span>
+<span class="code-line">      <span class="code-string">'parent_id'</span>: <span class="code-keyword">None</span>,</span>
+<span class="code-line">      <span class="code-string">'chunk_index'</span>: p_idx,</span>
+<span class="code-line">      <span class="code-string">'start_char'</span>: p_data[<span class="code-string">'start_char'</span>],</span>
+<span class="code-line">      <span class="code-string">'end_char'</span>: p_data[<span class="code-string">'end_char'</span>]</span>
+<span class="code-line">    })</span>
+<span class="code-line"></span>
+<span class="code-line">    child_chunks_data = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">      p_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">      chunk_size=<span class="code-number">1000</span>,</span>
+<span class="code-line">      overlap=<span class="code-number">100</span></span>
+<span class="code-line">    )</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">for</span> c_idx, c_data <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(child_chunks_data):</span>
+<span class="code-line">      child_id = str(uuid.<span class="code-function">uuid4</span>())</span>
+<span class="code-line">      all_chunks.<span class="code-function">append</span>({</span>
+<span class="code-line">        <span class="code-string">'id'</span>: child_id,</span>
+<span class="code-line">        <span class="code-string">'video_id'</span>: video_id,</span>
+<span class="code-line">        <span class="code-string">'text'</span>: c_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">        <span class="code-string">'type'</span>: <span class="code-string">'child'</span>,</span>
+<span class="code-line">        <span class="code-string">'parent_id'</span>: parent_id,</span>
+<span class="code-line">        <span class="code-string">'chunk_index'</span>: c_idx,</span>
+<span class="code-line">        <span class="code-string">'start_char'</span>: p_data[<span class="code-string">'start_char'</span>] + c_data[<span class="code-string">'start_char'</span>],</span>
+<span class="code-line">        <span class="code-string">'end_char'</span>: p_data[<span class="code-string">'start_char'</span>] + c_data[<span class="code-string">'end_char'</span>]</span>
+<span class="code-line">      })</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">return</span> all_chunks</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the main function. Takes: the YouTube video's ID (a string like "dQw4w9WgXcQ") and the full transcript text.</p>
+            <p class="tl">↳ Docstring begins.</p>
+            <p class="tl">↳ One-line description of purpose.</p>
+            <p class="tl">↳ Lists the two-step strategy.</p>
+            <p class="tl">↳ Step 1: make big parent slices for context.</p>
+            <p class="tl">↳ Step 2: slice each parent into small children for searching.</p>
+            <p class="tl">↳ Size reference section.</p>
+            <p class="tl">↳ Parent = 3,000 characters ≈ 750 words ≈ 750 tokens. Rich context for the AI.</p>
+            <p class="tl">↳ Child = 1,000 characters ≈ 250 words. Fits the MiniLM embedding model's 256-token limit.</p>
+            <p class="tl">↳ 200-character overlap between consecutive parents so no content falls in the gap.</p>
+            <p class="tl">↳ End docstring.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">First pass: call chunk_text() on the full transcript...</p>
+            <p class="tl">...passing in the whole transcript text.</p>
+            <p class="tl">...asking for 3,000-character slices...</p>
+            <p class="tl">...with 200 characters of overlap between consecutive parents.</p>
+            <p class="tl">Result: a list of parent chunk dictionaries. Store it in parent_chunks_data.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Create the master output list. Both parent and child chunks will go into this same list.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Loop through each parent chunk. enumerate() gives us both the index (p_idx = 0, 1, 2...) and the data dict (p_data).</p>
+            <p class="tl">Generate a random unique ID for this parent. uuid4() produces something like "3e4a8b1c-9f2d-4e7a-b8c3-1a2b3c4d5e6f". str() converts it to a plain string.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add the parent chunk record to our master list.</p>
+            <p class="tl">The parent's unique identifier — stored so children can reference it.</p>
+            <p class="tl">Which YouTube video this chunk came from.</p>
+            <p class="tl">The actual text content of this 3,000-character slice.</p>
+            <p class="tl">Label this record as a "parent" type — distinguishes it from child chunks in database queries.</p>
+            <p class="tl">Parents have no parent themselves. None = null = "this is a root node."</p>
+            <p class="tl">Which parent chunk this is: 0 = first, 1 = second, etc. Preserves ordering.</p>
+            <p class="tl">Where in the original transcript this parent chunk starts (character position).</p>
+            <p class="tl">Where it ends. Useful for mapping back to a timestamp in the video.</p>
+            <p class="tl">Close the dictionary and the append() call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Second pass: now slice THIS PARENT'S text into smaller children.</p>
+            <p class="tl">Pass in only this parent's text (not the full transcript).</p>
+            <p class="tl">Ask for 1,000-character slices — small enough for the embedding model.</p>
+            <p class="tl">100-character overlap within each parent so sentence fragments aren't lost.</p>
+            <p class="tl">Result: a list of child chunk dicts for this parent only.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Inner loop: for each child chunk within this parent.</p>
+            <p class="tl">Generate a unique ID for this child — same pattern as parent.</p>
+            <p class="tl">Add this child to the same master list as its parent.</p>
+            <p class="tl">The child's own unique identifier.</p>
+            <p class="tl">Same video ID as the parent — child inherits this.</p>
+            <p class="tl">The actual text content of this small 1,000-character slice.</p>
+            <p class="tl">Label as "child" — retrieval.py queries for type='child' specifically when building the BM25 index.</p>
+            <p class="tl">Foreign key: the parent's ID. This is the link that lets us say "when you find this child relevant, return its parent for context."</p>
+            <p class="tl">Position of this child within its parent's sequence: 0, 1, 2...</p>
+            <p class="tl">Absolute position in original transcript = parent's start + child's local start. Translates local coordinates back to global coordinates.</p>
+            <p class="tl">Same offset math for the end position — child's local end + parent's absolute start = child's absolute end in the original transcript.</p>
+            <p class="tl">Close the child dictionary and the inner append().</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">After both loops finish, return the complete master list containing ALL parents and ALL children interleaved. Typically 3–4 children per parent.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-7">
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 7 · Deep Dive</span>
+      <h1 class="module-title">retrieval.py — Every Line Explained</h1>
+      <p class="module-subtitle">174 lines. One class. Five methods. The entire search brain of your RAG system.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Setup: Imports, Constants &amp; <code>__init__</code> — Lines 1–30</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> os</span>
+<span class="code-line"><span class="code-keyword">import</span> sys</span>
+<span class="code-line"><span class="code-keyword">from</span> rank_bm25 <span class="code-keyword">import</span> BM25Okapi</span>
+<span class="code-line"><span class="code-keyword">import</span> cohere</span>
+<span class="code-line"><span class="code-keyword">from</span> dotenv <span class="code-keyword">import</span> load_dotenv</span>
+<span class="code-line"></span>
+<span class="code-line">sys.path.<span class="code-function">append</span>(os.path.<span class="code-function">dirname</span>(...))</span>
+<span class="code-line"><span class="code-keyword">from</span> src.db <span class="code-keyword">import</span> get_connection, get_supabase_client</span>
+<span class="code-line"><span class="code-keyword">from</span> src.embeddings <span class="code-keyword">import</span> get_collection, get_embedding_model</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">load_dotenv</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">VECTOR_TOP_K = <span class="code-number">20</span></span>
+<span class="code-line">BM25_TOP_K   = <span class="code-number">20</span></span>
+<span class="code-line">RERANK_TOP_N = <span class="code-number">5</span></span>
+<span class="code-line">USE_SUPABASE = os.<span class="code-function">getenv</span>(<span class="code-string">"USE_SUPABASE"</span>, <span class="code-string">"false"</span>).<span class="code-function">lower</span>() == <span class="code-string">"true"</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">HybridRetriever</span>:</span>
+<span class="code-line">  <span class="code-string">"""Hybrid search: BM25 + (ChromaDB or Supabase)</span></span>
+<span class="code-line">  <span class="code-string">fused via RRF, then reranked by Cohere."""</span></span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):</span>
+<span class="code-line">    self._bm25_index = <span class="code-keyword">None</span></span>
+<span class="code-line">    self._bm25_corpus = <span class="code-keyword">None</span></span>
+<span class="code-line">    self._cohere_client = <span class="code-keyword">None</span></span>
+<span class="code-line">    self._supabase = <span class="code-function">get_supabase_client</span>() <span class="code-keyword">if</span> USE_SUPABASE <span class="code-keyword">else</span> <span class="code-keyword">None</span></span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import os — used to read environment variables and file paths.</p>
+            <p class="tl">Import sys — used to manipulate the Python module search path.</p>
+            <p class="tl">Import the BM25Okapi class from the rank_bm25 library. This is the industry-standard keyword ranking algorithm — the same math behind early Google.</p>
+            <p class="tl">Import cohere — the Python client for Cohere's reranking API.</p>
+            <p class="tl">Import load_dotenv — reads the .env file and makes its key=value pairs available as environment variables.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add the project root to Python's module search path — without this, the src.db imports below would fail with "ModuleNotFoundError."</p>
+            <p class="tl">Import two database functions: get_connection() for SQLite and get_supabase_client() for cloud mode.</p>
+            <p class="tl">Import two embedding functions: get_collection() returns the ChromaDB collection object; get_embedding_model() returns the loaded MiniLM model.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Execute load_dotenv() — this reads the .env file on disk right now and populates environment variables so subsequent os.getenv() calls can find them.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Constant: vector search will return its top 20 candidate chunks before fusion. Module-level means it applies to all instances of this class.</p>
+            <p class="tl">Constant: keyword (BM25) search also returns 20 candidates. Extra spaces are alignment — a stylistic choice by the developer.</p>
+            <p class="tl">Constant: after RRF fusion, Cohere reranks all candidates and returns only the top 5. These 5 become the context fed to the AI.</p>
+            <p class="tl">Read the USE_SUPABASE environment variable. If the value is "true" (case-insensitive), set this to the boolean True; otherwise False. This single flag determines which database path every method in this class will take.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the HybridRetriever class — a blueprint for objects that can search the knowledge base.</p>
+            <p class="tl">↳ Docstring: documents what this class does and the three-step pipeline (BM25 + vector → RRF → Cohere).</p>
+            <p class="tl">↳ End docstring.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Constructor — called automatically when you do HybridRetriever(). Sets up the object's starting state.</p>
+            <p class="tl">BM25 index starts unbuilt. None = "not yet created." It gets built lazily on first use (see build_bm25_index).</p>
+            <p class="tl">The BM25 corpus (the list of tokenized chunks) also starts empty.</p>
+            <p class="tl">Cohere client starts uninitialized. It gets created inside the rerank() method when first needed, not here.</p>
+            <p class="tl">If USE_SUPABASE is True, immediately create the Supabase connection and store it. If False, store None — SQLite connections are created fresh inside each method instead.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2><code>build_bm25_index()</code> &amp; <code>search_bm25()</code> — Lines 31–61</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">build_bm25_index</span>(self):</span>
+<span class="code-line">    <span class="code-string">"""Load child chunks from DB and build index."""</span></span>
+<span class="code-line">    <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">      res = self._supabase.<span class="code-function">table</span>(<span class="code-string">"viking_chunks"</span>)</span>
+<span class="code-line">        .<span class="code-function">select</span>(<span class="code-string">"id, text"</span>).<span class="code-function">eq</span>(<span class="code-string">"type"</span>, <span class="code-string">"child"</span>).<span class="code-function">execute</span>()</span>
+<span class="code-line">      rows = res.data</span>
+<span class="code-line">    <span class="code-keyword">else</span>:</span>
+<span class="code-line">      conn = <span class="code-function">get_connection</span>()</span>
+<span class="code-line">      cursor = conn.<span class="code-function">cursor</span>()</span>
+<span class="code-line">      cursor.<span class="code-function">execute</span>(<span class="code-string">"SELECT id, text FROM chunks WHERE type = 'child'"</span>)</span>
+<span class="code-line">      rows = cursor.<span class="code-function">fetchall</span>()</span>
+<span class="code-line">      conn.<span class="code-function">close</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">    self._bm25_corpus = [</span>
+<span class="code-line">      {<span class="code-string">'id'</span>: r[<span class="code-string">'id'</span>], <span class="code-string">'tokens'</span>: r[<span class="code-string">'text'</span>].<span class="code-function">lower</span>().<span class="code-function">split</span>()}</span>
+<span class="code-line">      <span class="code-keyword">for</span> r <span class="code-keyword">in</span> rows</span>
+<span class="code-line">    ]</span>
+<span class="code-line">    tokenized = [c[<span class="code-string">'tokens'</span>] <span class="code-keyword">for</span> c <span class="code-keyword">in</span> self._bm25_corpus]</span>
+<span class="code-line">    self._bm25_index = <span class="code-function">BM25Okapi</span>(tokenized)</span>
+<span class="code-line">    <span class="code-function">print</span>(<span class="code-string">f"BM25 index built: {len(self._bm25_corpus)} child chunks."</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">search_bm25</span>(self, query, top_k=BM25_TOP_K):</span>
+<span class="code-line">    <span class="code-keyword">if not</span> self._bm25_index:</span>
+<span class="code-line">      self.<span class="code-function">build_bm25_index</span>()</span>
+<span class="code-line">    tokens = query.<span class="code-function">lower</span>().<span class="code-function">split</span>()</span>
+<span class="code-line">    scores = self._bm25_index.<span class="code-function">get_scores</span>(tokens)</span>
+<span class="code-line">    scored = <span class="code-function">sorted</span>(</span>
+<span class="code-line">      <span class="code-function">zip</span>([c[<span class="code-string">'id'</span>] <span class="code-keyword">for</span> c <span class="code-keyword">in</span> self._bm25_corpus], scores),</span>
+<span class="code-line">      key=<span class="code-keyword">lambda</span> x: x[<span class="code-number">1</span>],</span>
+<span class="code-line">      reverse=<span class="code-keyword">True</span></span>
+<span class="code-line">    )</span>
+<span class="code-line">    <span class="code-keyword">return</span> [</span>
+<span class="code-line">      {<span class="code-string">'id'</span>: chunk_id, <span class="code-string">'score'</span>: <span class="code-function">float</span>(score)}</span>
+<span class="code-line">      <span class="code-keyword">for</span> chunk_id, score <span class="code-keyword">in</span> scored[:top_k]</span>
+<span class="code-line">    ]</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the index-building method. Must be called once before BM25 search works.</p>
+            <p class="tl">↳ Docstring.</p>
+            <p class="tl">Choose database path based on the USE_SUPABASE flag set at startup.</p>
+            <p class="tl">Supabase path: query the "viking_chunks" table in the cloud database...</p>
+            <p class="tl">...select only the id and text columns, filtered to rows where type = "child". Child chunks are what get indexed; parent chunks are retrieved for context later.</p>
+            <p class="tl">Store the returned rows list in the variable rows.</p>
+            <p class="tl">Local SQLite path (the else branch).</p>
+            <p class="tl">Open a connection to the local SQLite file.</p>
+            <p class="tl">Create a cursor — the object that executes SQL commands.</p>
+            <p class="tl">Run the SQL query: fetch id and text for all child-type chunks. Equivalent to the Supabase query above.</p>
+            <p class="tl">Fetch all the results into the rows variable at once.</p>
+            <p class="tl">Close the database connection — good housekeeping, frees the file lock.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Build the corpus: for each row in rows, create a dict with the chunk's id and its text lowercased and split on whitespace into a list of word tokens. This list-comprehension format is Python's compact loop syntax.</p>
+            <p class="tl">↳ For each row r, extract the id and tokenize the text.</p>
+            <p class="tl">↳ Close the list comprehension.</p>
+            <p class="tl">Extract just the token lists (without the IDs) — BM25Okapi expects a flat list of token lists.</p>
+            <p class="tl">Build the BM25 index by passing all tokenized documents to BM25Okapi. This is the slow step — it calculates term frequencies and inverse document frequencies for the entire corpus. Happens once at startup.</p>
+            <p class="tl">Print a status message so the user knows it completed and how many chunks are indexed.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the keyword search method. top_k defaults to BM25_TOP_K (20) but can be overridden.</p>
+            <p class="tl">Lazy initialization guard: if the BM25 index hasn't been built yet...</p>
+            <p class="tl">...build it now before proceeding. This makes building automatic — callers don't have to remember to call build_bm25_index() first.</p>
+            <p class="tl">Tokenize the query the same way the corpus was tokenized: lowercase, split on spaces. Consistency is critical — "AI Safety" must become ["ai", "safety"] to match the indexed tokens.</p>
+            <p class="tl">Ask the BM25 index to score every document in the corpus against these query tokens. Returns a list of floats, one per document, in corpus order.</p>
+            <p class="tl">Pair each chunk's id with its score using zip(), then sort the pairs...</p>
+            <p class="tl">↳ zip produces (id, score) tuples; we pull all IDs from the corpus to pair with the score list.</p>
+            <p class="tl">↳ Sort by the score value (index [1] of each tuple)...</p>
+            <p class="tl">↳ ...in descending order (highest score first).</p>
+            <p class="tl">↳ Close the sorted() call. Result: a list of (chunk_id, score) pairs, best match first.</p>
+            <p class="tl">Return the top_k results as a list of clean dicts, slicing [:top_k] to take only the first 20.</p>
+            <p class="tl">↳ Each dict has the chunk's id and its BM25 score as a Python float.</p>
+            <p class="tl">↳ Close the list comprehension.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2><code>search_vector()</code> &amp; <code>rrf_fusion()</code> — Lines 63–92</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">search_vector</span>(self, query, top_k=VECTOR_TOP_K):</span>
+<span class="code-line">    model = <span class="code-function">get_embedding_model</span>()</span>
+<span class="code-line">    query_embedding = model.<span class="code-function">encode</span>([query]).<span class="code-function">tolist</span>()[<span class="code-number">0</span>]</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">      res = self._supabase.<span class="code-function">rpc</span>(<span class="code-string">'match_chunks'</span>, {</span>
+<span class="code-line">        <span class="code-string">'query_embedding'</span>: query_embedding,</span>
+<span class="code-line">        <span class="code-string">'match_threshold'</span>: <span class="code-number">0.1</span>,</span>
+<span class="code-line">        <span class="code-string">'match_count'</span>: top_k</span>
+<span class="code-line">      }).<span class="code-function">execute</span>()</span>
+<span class="code-line">      <span class="code-keyword">return</span> [{<span class="code-string">'id'</span>: r[<span class="code-string">'id'</span>], <span class="code-string">'score'</span>: r[<span class="code-string">'similarity'</span>]} <span class="code-keyword">for</span> r <span class="code-keyword">in</span> res.data]</span>
+<span class="code-line">    <span class="code-keyword">else</span>:</span>
+<span class="code-line">      collection = <span class="code-function">get_collection</span>()</span>
+<span class="code-line">      results = collection.<span class="code-function">query</span>(</span>
+<span class="code-line">        query_embeddings=[query_embedding],</span>
+<span class="code-line">        n_results=top_k,</span>
+<span class="code-line">        include=[<span class="code-string">"distances"</span>]</span>
+<span class="code-line">      )</span>
+<span class="code-line">      ids = results[<span class="code-string">'ids'</span>][<span class="code-number">0</span>]</span>
+<span class="code-line">      scores = [<span class="code-number">1</span> / (<span class="code-number">1</span> + d) <span class="code-keyword">for</span> d <span class="code-keyword">in</span> results[<span class="code-string">'distances'</span>][<span class="code-number">0</span>]]</span>
+<span class="code-line">      <span class="code-keyword">return</span> [{<span class="code-string">'id'</span>: cid, <span class="code-string">'score'</span>: s} <span class="code-keyword">for</span> cid, s <span class="code-keyword">in</span> <span class="code-function">zip</span>(ids, scores)]</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">rrf_fusion</span>(self, bm25_results, vector_results, k=<span class="code-number">60</span>):</span>
+<span class="code-line">    scores = {}</span>
+<span class="code-line">    <span class="code-keyword">for</span> rank, item <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(bm25_results):</span>
+<span class="code-line">      scores[item[<span class="code-string">'id'</span>]] = scores.<span class="code-function">get</span>(item[<span class="code-string">'id'</span>], <span class="code-number">0.0</span>) + <span class="code-number">1.0</span> / (k + rank + <span class="code-number">1</span>)</span>
+<span class="code-line">    <span class="code-keyword">for</span> rank, item <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(vector_results):</span>
+<span class="code-line">      scores[item[<span class="code-string">'id'</span>]] = scores.<span class="code-function">get</span>(item[<span class="code-string">'id'</span>], <span class="code-number">0.0</span>) + <span class="code-number">1.0</span> / (k + rank + <span class="code-number">1</span>)</span>
+<span class="code-line">    fused = <span class="code-function">sorted</span>(scores.<span class="code-function">items</span>(), key=<span class="code-keyword">lambda</span> x: x[<span class="code-number">1</span>], reverse=<span class="code-keyword">True</span>)</span>
+<span class="code-line">    <span class="code-keyword">return</span> [{<span class="code-string">'id'</span>: cid, <span class="code-string">'score'</span>: score} <span class="code-keyword">for</span> cid, score <span class="code-keyword">in</span> fused]</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the vector/semantic search method. Works by converting the question into a vector, then finding the nearest stored vectors.</p>
+            <p class="tl">Load the MiniLM embedding model. get_embedding_model() caches it after the first load, so subsequent calls are instant.</p>
+            <p class="tl">Convert the query string into a vector: encode() returns a 2D array (batch mode), so [query] is a list of one. tolist() converts from NumPy array to plain Python list. [0] gets the first (only) result — a list of 384 floats representing the query's meaning.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Branch based on database mode.</p>
+            <p class="tl">Supabase path: call the match_chunks SQL function stored in Supabase (defined in supabase_schema.sql). This runs a cosine similarity search inside the database itself — an efficient Postgres vector extension operation.</p>
+            <p class="tl">↳ Pass the query embedding as input.</p>
+            <p class="tl">↳ Only return results with cosine similarity above 0.1 — filters out totally unrelated chunks.</p>
+            <p class="tl">↳ Return at most top_k (20) results.</p>
+            <p class="tl">↳ Execute the RPC call and parse results into clean id/score dicts.</p>
+            <p class="tl">Return a list of {id, score} dicts from the Supabase response.</p>
+            <p class="tl">Local ChromaDB path.</p>
+            <p class="tl">Get the ChromaDB collection object — the local vector store that holds all embedded chunks.</p>
+            <p class="tl">Run ChromaDB's nearest-neighbor search: pass the query embedding...</p>
+            <p class="tl">↳ wrapped in a list (ChromaDB expects a batch).</p>
+            <p class="tl">↳ Return the 20 closest matches.</p>
+            <p class="tl">↳ Also return their distances (how far apart the vectors are — lower is more similar).</p>
+            <p class="tl">↳ Close the query call.</p>
+            <p class="tl">Extract the list of chunk IDs. results['ids'] is a list of lists (one per query in the batch); [0] gets the first (and only) query's results.</p>
+            <p class="tl">Convert ChromaDB distances to similarity scores: 1/(1+distance). Distance 0 = identical → score 1.0. Distance 1 = quite different → score 0.5. Inverts the scale so higher = better.</p>
+            <p class="tl">Zip IDs and scores together into clean {id, score} dicts and return them.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the Reciprocal Rank Fusion method. Takes the two ranked lists and merges them. k=60 is the standard RRF smoothing constant.</p>
+            <p class="tl">Create an empty dict to accumulate combined scores. Keys will be chunk IDs, values will be their running RRF score totals.</p>
+            <p class="tl">Loop through BM25 results with their rank positions (0, 1, 2...). For each chunk, add 1/(60 + rank + 1) to its running score. Rank 0 contributes 1/61=0.0164. Rank 19 contributes 1/80=0.0125. The +1 shifts from 0-indexed rank to 1-indexed position.</p>
+            <p class="tl">Same loop for vector results. If a chunk appeared in BOTH lists, its score gets added to twice — rewarding chunks that both methods agreed on. The k=60 constant means even rank-1 in one list can't totally overshadow a chunk that appeared in both lists at rank 10.</p>
+            <p class="tl">Sort the accumulated scores dict by value (the RRF score), highest first. .items() produces (chunk_id, rrf_score) tuples.</p>
+            <p class="tl">Return the sorted list as clean dicts, ready for the reranker.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2><code>rerank()</code>, <code>get_context()</code> &amp; <code>retrieve()</code> — Lines 94–174</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">rerank</span>(self, query, fused_results, top_n=RERANK_TOP_N):</span>
+<span class="code-line">    <span class="code-keyword">if not</span> fused_results: <span class="code-keyword">return</span> []</span>
+<span class="code-line">    chunk_ids = [r[<span class="code-string">'id'</span>] <span class="code-keyword">for</span> r <span class="code-keyword">in</span> fused_results]</span>
+<span class="code-line">    <span class="code-comment"># ... fetch chunk texts from DB (same if/else pattern) ...</span></span>
+<span class="code-line">    documents = [chunks_by_id.<span class="code-function">get</span>(cid, <span class="code-string">''</span>) <span class="code-keyword">for</span> cid <span class="code-keyword">in</span> chunk_ids]</span>
+<span class="code-line">    api_key = os.<span class="code-function">getenv</span>(<span class="code-string">"COHERE_API_KEY"</span>)</span>
+<span class="code-line">    <span class="code-keyword">if not</span> api_key: <span class="code-keyword">raise</span> <span class="code-function">ValueError</span>(<span class="code-string">"COHERE_API_KEY not set."</span>)</span>
+<span class="code-line">    co = cohere.<span class="code-function">ClientV2</span>(api_key=api_key)</span>
+<span class="code-line">    response = co.<span class="code-function">rerank</span>(</span>
+<span class="code-line">      model=<span class="code-string">"rerank-v3.5"</span>,</span>
+<span class="code-line">      query=query,</span>
+<span class="code-line">      documents=documents,</span>
+<span class="code-line">      top_n=top_n</span>
+<span class="code-line">    )</span>
+<span class="code-line">    reranked = []</span>
+<span class="code-line">    <span class="code-keyword">for</span> result <span class="code-keyword">in</span> response.results:</span>
+<span class="code-line">      original_idx = result.index</span>
+<span class="code-line">      reranked.<span class="code-function">append</span>({</span>
+<span class="code-line">        <span class="code-string">'id'</span>: chunk_ids[original_idx],</span>
+<span class="code-line">        <span class="code-string">'text'</span>: documents[original_idx],</span>
+<span class="code-line">        <span class="code-string">'score'</span>: result.relevance_score</span>
+<span class="code-line">      })</span>
+<span class="code-line">    <span class="code-keyword">return</span> reranked</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">get_context</span>(self, reranked_results):</span>
+<span class="code-line">    <span class="code-keyword">if not</span> reranked_results: <span class="code-keyword">return</span> []</span>
+<span class="code-line">    child_ids = [r[<span class="code-string">'id'</span>] <span class="code-keyword">for</span> r <span class="code-keyword">in</span> reranked_results]</span>
+<span class="code-line">    <span class="code-comment"># ... fetch child rows + parent rows from DB ...</span></span>
+<span class="code-line">    context = []</span>
+<span class="code-line">    <span class="code-keyword">for</span> res <span class="code-keyword">in</span> reranked_results:</span>
+<span class="code-line">      child_row = child_rows.<span class="code-function">get</span>(res[<span class="code-string">'id'</span>])</span>
+<span class="code-line">      <span class="code-keyword">if not</span> child_row: <span class="code-keyword">continue</span></span>
+<span class="code-line">      p_id = child_row[<span class="code-string">'parent_id'</span>]</span>
+<span class="code-line">      p_row = parent_rows.<span class="code-function">get</span>(p_id, {})</span>
+<span class="code-line">      context.<span class="code-function">append</span>({</span>
+<span class="code-line">        <span class="code-string">'video_id'</span>: child_row[<span class="code-string">'video_id'</span>],</span>
+<span class="code-line">        <span class="code-string">'parent_text'</span>: p_row.<span class="code-function">get</span>(<span class="code-string">'text'</span>, res[<span class="code-string">'text'</span>]),</span>
+<span class="code-line">        <span class="code-string">'child_text'</span>: res[<span class="code-string">'text'</span>],</span>
+<span class="code-line">        <span class="code-string">'child_score'</span>: res[<span class="code-string">'score'</span>]</span>
+<span class="code-line">      })</span>
+<span class="code-line">    <span class="code-keyword">return</span> context</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">retrieve</span>(self, query):</span>
+<span class="code-line">    bm25_results   = self.<span class="code-function">search_bm25</span>(query)</span>
+<span class="code-line">    vector_results = self.<span class="code-function">search_vector</span>(query)</span>
+<span class="code-line">    fused          = self.<span class="code-function">rrf_fusion</span>(bm25_results, vector_results)</span>
+<span class="code-line">    reranked       = self.<span class="code-function">rerank</span>(query, fused)</span>
+<span class="code-line">    <span class="code-keyword">return</span> self.<span class="code-function">get_context</span>(reranked)</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the neural reranking method. Gets the query, the fused candidate list, and returns only the top_n (default 5).</p>
+            <p class="tl">Guard clause: if no results came in (empty list), return immediately with an empty list — nothing to rerank.</p>
+            <p class="tl">Extract just the chunk IDs from the fused results into a plain list. Needed to fetch text and to map Cohere's response back to our records.</p>
+            <p class="tl">↳ (Database fetch omitted here for brevity: loads text for each chunk_id using the same if/else Supabase vs SQLite branch pattern seen in build_bm25_index.)</p>
+            <p class="tl">Build the documents list: for each chunk_id in order, look up its text in chunks_by_id. If somehow missing (shouldn't happen), default to empty string — avoids a KeyError crash.</p>
+            <p class="tl">Read the COHERE_API_KEY environment variable at call time (not at startup) — so a missing key fails at query time with a clear error, not silently at import time.</p>
+            <p class="tl">Validate the key exists. If not, raise a descriptive error immediately — fail loudly so the user knows exactly what's wrong.</p>
+            <p class="tl">Create the Cohere API client using the key. ClientV2 is Cohere's newer API version with better performance.</p>
+            <p class="tl">Call Cohere's rerank endpoint. This is a transformer model that reads the query and each document together and assigns a relevance score. The API call goes to Cohere's servers.</p>
+            <p class="tl">↳ Use the rerank-v3.5 model — Cohere's current best reranker as of late 2024.</p>
+            <p class="tl">↳ The original query string — Cohere reads this against each document.</p>
+            <p class="tl">↳ The list of chunk texts to score.</p>
+            <p class="tl">↳ Only return the top 5 — Cohere scores all, returns the best top_n.</p>
+            <p class="tl">↳ Close the rerank() call.</p>
+            <p class="tl">Initialize the output list.</p>
+            <p class="tl">Loop through Cohere's results. Each result has an index (position in the original documents list) and a relevance_score (0-1, higher = more relevant).</p>
+            <p class="tl">Get the position in our original documents list that this Cohere result refers to. Cohere returns results in its own order — we use this index to look up the original chunk.</p>
+            <p class="tl">Build the output dict for this reranked result.</p>
+            <p class="tl">↳ The chunk's ID, looked up by its original position in chunk_ids list.</p>
+            <p class="tl">↳ The chunk's text, looked up the same way.</p>
+            <p class="tl">↳ Cohere's relevance score — a float between 0 and 1 indicating how relevant this passage is to the query.</p>
+            <p class="tl">↳ Close the dict and append().</p>
+            <p class="tl">Return the reranked list — top 5 passages ordered by Cohere's judgment of relevance.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the context-fetching method. Its job: take child chunk IDs from reranker, look up their parent chunks, return parent text for the AI.</p>
+            <p class="tl">Guard: return early on empty input.</p>
+            <p class="tl">Extract the child IDs from the reranked results.</p>
+            <p class="tl">↳ (Database fetches omitted: queries for child rows to get parent_id, then queries for parent rows to get their text.)</p>
+            <p class="tl">Initialize the context output list.</p>
+            <p class="tl">Loop through reranked results — these are already in Cohere's relevance order.</p>
+            <p class="tl">Look up the child chunk's full database row (which contains its parent_id).</p>
+            <p class="tl">If the child row is missing (edge case — shouldn't happen but database can be inconsistent), skip this result with continue.</p>
+            <p class="tl">Get this child's parent_id — the foreign key. This is the pointer to the larger chunk.</p>
+            <p class="tl">Look up the parent row. {} is the fallback if parent is missing — prevents KeyError.</p>
+            <p class="tl">Build the context dict to return to query.py.</p>
+            <p class="tl">↳ Which video this came from — used to look up the video title for citations.</p>
+            <p class="tl">↳ The PARENT's text (3,000 chars) — this is what gets sent to the AI. Falls back to child text if parent lookup failed.</p>
+            <p class="tl">↳ The small CHILD's text (1,000 chars) — stored for reference but not sent to AI.</p>
+            <p class="tl">↳ Cohere's relevance score for this chunk — carries through for potential future use.</p>
+            <p class="tl">↳ Close dict and append.</p>
+            <p class="tl">Return the final context list — typically 5 dicts, each containing a parent's text and source metadata.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">The public method that orchestrates everything. Called by query.py for every question. Four lines for four steps.</p>
+            <p class="tl">Step 1: keyword search — returns 20 candidates ranked by term frequency.</p>
+            <p class="tl">Step 2: semantic search — returns 20 candidates ranked by meaning similarity.</p>
+            <p class="tl">Step 3: RRF fusion — merges the two lists into one consensus ranking.</p>
+            <p class="tl">Step 4: neural reranking — Cohere reads all candidates and picks the best 5.</p>
+            <p class="tl">Step 5: context fetch — upgrade the 5 child chunks to their larger parent chunks and return.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<section class="module" id="module-8">
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 8 · Deep Dive</span>
+      <h1 class="module-title">query.py — Every Line Explained</h1>
+      <p class="module-subtitle">135 lines. The head chef. It orchestrates retrieval, builds the prompt, calls Moonshot, and streams the answer back to you.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Imports, Singleton &amp; Context Builder — Lines 1–54</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · query.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> os</span>
+<span class="code-line"><span class="code-keyword">import</span> sys</span>
+<span class="code-line"><span class="code-keyword">from</span> dotenv <span class="code-keyword">import</span> load_dotenv</span>
+<span class="code-line"><span class="code-keyword">from</span> openai <span class="code-keyword">import</span> OpenAI</span>
+<span class="code-line"></span>
+<span class="code-line">sys.path.<span class="code-function">append</span>(os.path.<span class="code-function">dirname</span>(...))</span>
+<span class="code-line"><span class="code-keyword">from</span> src.db <span class="code-keyword">import</span> get_connection, get_supabase_client</span>
+<span class="code-line"><span class="code-keyword">from</span> src.retrieval <span class="code-keyword">import</span> HybridRetriever</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">load_dotenv</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">USE_SUPABASE = os.<span class="code-function">getenv</span>(<span class="code-string">"USE_SUPABASE"</span>, <span class="code-string">"false"</span>).<span class="code-function">lower</span>() == <span class="code-string">"true"</span></span>
+<span class="code-line"></span>
+<span class="code-line">_retriever = <span class="code-keyword">None</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">get_retriever</span>():</span>
+<span class="code-line">  <span class="code-keyword">global</span> _retriever</span>
+<span class="code-line">  <span class="code-keyword">if</span> _retriever <span class="code-keyword">is None</span>:</span>
+<span class="code-line">    _retriever = <span class="code-function">HybridRetriever</span>()</span>
+<span class="code-line">    _retriever.<span class="code-function">build_bm25_index</span>()</span>
+<span class="code-line">  <span class="code-keyword">return</span> _retriever</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">_build_context_block</span>(context_results):</span>
+<span class="code-line">  <span class="code-keyword">if not</span> context_results:</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-string">""</span>, []</span>
+<span class="code-line"></span>
+<span class="code-line">  blocks = []</span>
+<span class="code-line">  sources = []</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">    supabase = <span class="code-function">get_supabase_client</span>()</span>
+<span class="code-line">  <span class="code-keyword">else</span>:</span>
+<span class="code-line">    conn = <span class="code-function">get_connection</span>()</span>
+<span class="code-line">    cursor = conn.<span class="code-function">cursor</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">for</span> i, c <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(context_results, start=<span class="code-number">1</span>):</span>
+<span class="code-line">    video_id = c[<span class="code-string">'video_id'</span>]</span>
+<span class="code-line">    title = video_id</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">      res = supabase.<span class="code-function">table</span>(<span class="code-string">"viking_videos"</span>).<span class="code-function">select</span>(<span class="code-string">"title"</span>).<span class="code-function">eq</span>(<span class="code-string">"id"</span>, video_id).<span class="code-function">execute</span>()</span>
+<span class="code-line">      <span class="code-keyword">if</span> res.data: title = res.data[<span class="code-number">0</span>][<span class="code-string">'title'</span>]</span>
+<span class="code-line">    <span class="code-keyword">else</span>:</span>
+<span class="code-line">      cursor.<span class="code-function">execute</span>(<span class="code-string">"SELECT title FROM videos WHERE id = ?"</span>, (video_id,))</span>
+<span class="code-line">      row = cursor.<span class="code-function">fetchone</span>()</span>
+<span class="code-line">      <span class="code-keyword">if</span> row: title = row[<span class="code-string">'title'</span>]</span>
+<span class="code-line"></span>
+<span class="code-line">    sources.<span class="code-function">append</span>({<span class="code-string">'index'</span>: i, <span class="code-string">'video_id'</span>: video_id, <span class="code-string">'title'</span>: title})</span>
+<span class="code-line">    blocks.<span class="code-function">append</span>(<span class="code-string">f"[Source {i}: {title}]\n{c['parent_text']}"</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">if not</span> USE_SUPABASE: conn.<span class="code-function">close</span>()</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-string">"\n\n---\n\n"</span>.<span class="code-function">join</span>(blocks), sources</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import os — for environment variable access and file path operations.</p>
+            <p class="tl">Import sys — for modifying the Python module search path.</p>
+            <p class="tl">Import load_dotenv — reads the .env file and populates environment variables.</p>
+            <p class="tl">Import OpenAI — the official OpenAI Python client. Moonshot's API is compatible with the OpenAI format, so we reuse this client by pointing it at Moonshot's endpoint.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Fix module resolution: add the project root to Python's search path so the src.* imports below work from any working directory.</p>
+            <p class="tl">Import the two database connection helpers — same pattern seen throughout the codebase.</p>
+            <p class="tl">Import the HybridRetriever class from retrieval.py — this is the search engine we'll drive.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Read the .env file immediately at import time. All subsequent os.getenv() calls in this file will find the values from .env.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Read the USE_SUPABASE flag — identical pattern to retrieval.py. Determines which database path all methods in this file will take.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Module-level variable for the Singleton retriever. Starts as None (not built). Underscore prefix signals "this is private, not for external code to touch."</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Singleton accessor function — the ONLY way code should get a retriever instance.</p>
+            <p class="tl">Declare intent to use and modify the module-level _retriever variable (not create a local one).</p>
+            <p class="tl">Check if the retriever has been created yet. If it is None, we need to create it.</p>
+            <p class="tl">Create a new HybridRetriever instance — this sets up the database connection but does NOT build the BM25 index yet.</p>
+            <p class="tl">Build the BM25 index: reads all child chunks from the database and computes term frequencies. The slow one-time step. Takes 2–5 seconds on large datasets.</p>
+            <p class="tl">Return the retriever — either the newly built one or the cached one from a previous call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Private helper function (underscore prefix = internal use only) that takes the context results from retrieval and formats them into a prompt-ready string plus a sources list for citation.</p>
+            <p class="tl">Guard: if retrieval returned nothing...</p>
+            <p class="tl">...return empty string (for the context block) and empty list (for sources). The caller will handle the empty case.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">List that will collect formatted text blocks — one per source passage.</p>
+            <p class="tl">List that will collect source metadata dicts — used to print the "Sources used:" header.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Open a database connection once, before the loop. Opening it inside the loop would mean one connection per result — inefficient.</p>
+            <p class="tl">Supabase path: get the cloud client.</p>
+            <p class="tl">SQLite path.</p>
+            <p class="tl">Get a connection to the local database file.</p>
+            <p class="tl">Create a cursor so we can execute SQL queries on it.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Loop through the context results. enumerate(start=1) numbering starts at 1 (not 0) — Source 1, Source 2... matches the [Source N] citations in the AI's answer.</p>
+            <p class="tl">Extract the video_id from this context dict — the YouTube video's ID string.</p>
+            <p class="tl">Default title fallback: if we can't find the video's title in the database, use the video_id itself as the display name.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Try to look up the human-readable title instead of the raw ID.</p>
+            <p class="tl">Supabase: query the viking_videos table for the title where id matches this video_id.</p>
+            <p class="tl">If the query returned data (not empty), update title to the actual video name. [0] gets the first row; ['title'] gets the title field.</p>
+            <p class="tl">SQLite path.</p>
+            <p class="tl">Run parameterized SQL. The (video_id,) tuple safely passes the value — prevents SQL injection. The ? is the placeholder.</p>
+            <p class="tl">Fetch the single row result.</p>
+            <p class="tl">If a row was found, update title to the actual video title from the database.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add source metadata to the sources list — index number, video_id, and resolved title.</p>
+            <p class="tl">Format this source's text block as "[Source N: Video Title]\n{parent text}" and add to blocks. This label is what makes the AI cite "[Source 1]" in its answer.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Close the SQLite connection after the loop — good housekeeping. No need to close Supabase (handled internally by the client library).</p>
+            <p class="tl">Return TWO things: (1) all the text blocks joined by "---" separators (this becomes the context section of the AI prompt), and (2) the sources list for printing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Config Loader &amp; <code>generate_answer()</code> — Lines 57–126</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · query.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> yaml</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">get_config_prompt</span>():</span>
+<span class="code-line">  config_path = os.path.<span class="code-function">join</span>(</span>
+<span class="code-line">    os.path.<span class="code-function">dirname</span>(os.path.<span class="code-function">dirname</span>(</span>
+<span class="code-line">      os.path.<span class="code-function">abspath</span>(__file__))),</span>
+<span class="code-line">    <span class="code-string">'config'</span>, <span class="code-string">'prompts.yaml'</span></span>
+<span class="code-line">  )</span>
+<span class="code-line">  <span class="code-keyword">with</span> <span class="code-function">open</span>(config_path, <span class="code-string">'r'</span>) <span class="code-keyword">as</span> f:</span>
+<span class="code-line">    config = yaml.<span class="code-function">safe_load</span>(f)</span>
+<span class="code-line">  <span class="code-keyword">return</span> config.<span class="code-function">get</span>(<span class="code-string">'query_system_prompt'</span>, <span class="code-string">"Answer based on context."</span>)</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">generate_answer</span>(query: str) -&gt; str:</span>
+<span class="code-line">  <span class="code-string">"""Full RAG pipeline: retrieve → prompt → call Moonshot → return."""</span></span>
+<span class="code-line">  system_prompt = <span class="code-function">get_config_prompt</span>()</span>
+<span class="code-line">  retriever = <span class="code-function">get_retriever</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">"Retrieving relevant context..."</span>)</span>
+<span class="code-line">  context_results = retriever.<span class="code-function">retrieve</span>(query)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">if not</span> context_results:</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-string">"No relevant content found in the knowledge base."</span></span>
+<span class="code-line"></span>
+<span class="code-line">  context_text, sources = <span class="code-function">_build_context_block</span>(context_results)</span>
+<span class="code-line"></span>
+<span class="code-line">  user_message = <span class="code-string">f"""Context from podcast transcripts:</span></span>
+<span class="code-line"><span class="code-string">{context_text}</span></span>
+<span class="code-line"><span class="code-string">---</span></span>
+<span class="code-line"><span class="code-string">Question: {query}</span></span>
+<span class="code-line"><span class="code-string">Answer (cite sources as [Source N]):</span></span>
+<span class="code-line"><span class="code-string">"""</span></span>
+<span class="code-line"></span>
+<span class="code-line">  moonshot_key = os.<span class="code-function">getenv</span>(<span class="code-string">"MOONSHOT_API_KEY"</span>)</span>
+<span class="code-line">  <span class="code-keyword">if not</span> moonshot_key:</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-string">"Backend Error: MOONSHOT_API_KEY missing."</span></span>
+<span class="code-line"></span>
+<span class="code-line">  client = <span class="code-function">OpenAI</span>(</span>
+<span class="code-line">    api_key=moonshot_key,</span>
+<span class="code-line">    base_url=<span class="code-string">"https://api.moonshot.ai/v1"</span></span>
+<span class="code-line">  )</span>
+<span class="code-line"></span>
+<span class="code-line">  response = client.chat.completions.<span class="code-function">create</span>(</span>
+<span class="code-line">    model=<span class="code-string">"moonshot-v1-128k"</span>,</span>
+<span class="code-line">    messages=[</span>
+<span class="code-line">      {<span class="code-string">"role"</span>: <span class="code-string">"system"</span>, <span class="code-string">"content"</span>: system_prompt},</span>
+<span class="code-line">      {<span class="code-string">"role"</span>: <span class="code-string">"user"</span>,   <span class="code-string">"content"</span>: user_message}</span>
+<span class="code-line">    ],</span>
+<span class="code-line">    temperature=<span class="code-number">0.3</span>,</span>
+<span class="code-line">    stream=<span class="code-keyword">True</span></span>
+<span class="code-line">  )</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">f"\n{'='*60}\nQuery: {query}\n{'='*60}"</span>)</span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">"\nSources used:"</span>)</span>
+<span class="code-line">  <span class="code-keyword">for</span> s <span class="code-keyword">in</span> sources:</span>
+<span class="code-line">    <span class="code-function">print</span>(<span class="code-string">f"  [{s['index']}] {s['title']}"</span>)</span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">f"\n{'='*60}\nAnswer:\n"</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">  full_answer = <span class="code-string">""</span></span>
+<span class="code-line">  <span class="code-keyword">for</span> chunk <span class="code-keyword">in</span> response:</span>
+<span class="code-line">    delta = chunk.choices[<span class="code-number">0</span>].delta.content <span class="code-keyword">or</span> <span class="code-string">""</span></span>
+<span class="code-line">    <span class="code-function">print</span>(delta, end=<span class="code-string">""</span>, flush=<span class="code-keyword">True</span>)</span>
+<span class="code-line">    full_answer += delta</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">f"\n{'='*60}\n"</span>)</span>
+<span class="code-line">  <span class="code-keyword">return</span> full_answer</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import yaml — for reading the prompts.yaml config file. This late import is fine; Python only imports it when the function is called.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the config loader. Reads the system prompt from a YAML file instead of hardcoding it — lets you change the AI's behavior without touching Python code.</p>
+            <p class="tl">Start building the path to the config file. os.path.join constructs a path that works on both Mac and Windows.</p>
+            <p class="tl">os.path.abspath(__file__) = this file's absolute path. os.path.dirname() = the directory it's in (src/). Calling dirname() twice goes up two levels to the project root.</p>
+            <p class="tl">↳ This gives us the project root directory path.</p>
+            <p class="tl">Append 'config/prompts.yaml' to the project root. On Mac: /path/to/RAG/config/prompts.yaml.</p>
+            <p class="tl">↳ Close os.path.join().</p>
+            <p class="tl">Open the YAML file in read mode. "with" ensures it closes automatically when done, even if an error occurs.</p>
+            <p class="tl">Parse the YAML file into a Python dictionary. safe_load prevents code execution from malicious YAML — always use safe_load, not load().</p>
+            <p class="tl">Return the value of 'query_system_prompt' from the dict. The second argument is a fallback: if the key doesn't exist, use this simple default instead of crashing.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the main public function. The type annotation (query: str → str) documents what goes in and what comes out. This is what api.py and main.py both call.</p>
+            <p class="tl">↳ Docstring: describes the three-step pipeline.</p>
+            <p class="tl">Load the system prompt from config — this becomes the AI's persona and behavior instructions.</p>
+            <p class="tl">Get (or create) the cached HybridRetriever. On first call: builds BM25 index. On subsequent calls: returns instantly from memory.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Print a status message to the terminal so the user knows work is happening — RAG retrieval takes 2–5 seconds.</p>
+            <p class="tl">Run the complete retrieval pipeline: BM25 + vector → RRF fusion → Cohere rerank → parent context fetch. Returns a list of up to 5 context dicts.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Guard: if retrieval found nothing relevant in the knowledge base...</p>
+            <p class="tl">...return a human-readable "I don't know" message immediately without calling the AI. Avoids an expensive API call that would produce a hallucinated answer.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Format the context results into a single text block and a sources list. Using tuple unpacking: both return values assigned in one line.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Build the user message using an f-string (a string with {variable} placeholders filled in). This is the actual prompt sent to the AI.</p>
+            <p class="tl">↳ Insert the formatted context block — all 5 retrieved passages separated by "---" dividers.</p>
+            <p class="tl">↳ The visual separator between context and question in the prompt.</p>
+            <p class="tl">↳ Insert the user's original question.</p>
+            <p class="tl">↳ Instruct the AI explicitly to cite sources as [Source N]. This instruction is why the AI's answer contains "[Source 1]" style citations.</p>
+            <p class="tl">↳ Close the f-string.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Read the Moonshot API key from environment (loaded from .env via load_dotenv earlier).</p>
+            <p class="tl">Guard: if the key is missing...</p>
+            <p class="tl">...return a descriptive error message immediately without attempting the API call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Create the API client using OpenAI's Python library — but pointed at Moonshot's servers instead of OpenAI's.</p>
+            <p class="tl">↳ Authenticate with the Moonshot key.</p>
+            <p class="tl">↳ Override the default base URL to point at Moonshot's OpenAI-compatible endpoint. This is the "trick" that lets us reuse the OpenAI client with any compatible API.</p>
+            <p class="tl">↳ Close the OpenAI() constructor.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Make the API call to generate the answer. This sends both messages to Moonshot's servers.</p>
+            <p class="tl">↳ Specify the model: moonshot-v1-128k. The 128k refers to its context window size — it can read 128,000 tokens at once, which is why it handles multiple large parent chunks without truncation.</p>
+            <p class="tl">↳ The messages array defines the conversation. Two roles: system and user.</p>
+            <p class="tl">↳ System message: sets the AI's persona and behavior rules — loaded from prompts.yaml.</p>
+            <p class="tl">↳ User message: the actual question + all the retrieved context passages.</p>
+            <p class="tl">↳ Close the messages array.</p>
+            <p class="tl">↳ temperature=0.3: controls randomness. 0.0 = deterministic/robotic, 1.0 = creative/unpredictable. 0.3 is factual but not completely rigid — a good middle ground for QA tasks.</p>
+            <p class="tl">↳ stream=True: instead of waiting for the complete answer, receive it word-by-word as it's generated. Makes the UX feel responsive — you see words appearing instead of a 10-second blank wait.</p>
+            <p class="tl">↳ Close the create() call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Print a visual header: a row of 60 = signs, then the query, then another row. f"{'='*60}" multiplies the string "=" sixty times.</p>
+            <p class="tl">Print "Sources used:" header.</p>
+            <p class="tl">Loop through the sources list.</p>
+            <p class="tl">Print each source: "[1] Podcast Episode Title". This tells the user where the AI's answer came from.</p>
+            <p class="tl">Print the "Answer:" header with another separator row.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Initialize an empty string to accumulate the streamed answer.</p>
+            <p class="tl">Iterate through the stream. With stream=True, "response" is an iterator — each iteration yields one small chunk of the answer (a few words or tokens).</p>
+            <p class="tl">Extract the text content from this chunk. choices[0] is the first (only) generation choice. .delta.content is the new text added in this stream chunk. The "or ''" handles None values (which appear at the end of the stream as a termination signal).</p>
+            <p class="tl">Print each delta immediately without a newline (end="") and force the output buffer to flush (flush=True). This combination makes words appear one-by-one in the terminal as the AI generates them — the "live typing" effect.</p>
+            <p class="tl">Append each delta to full_answer to build the complete response string.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Print a final separator row after the answer is complete.</p>
+            <p class="tl">Return the full accumulated answer string back to the caller (api.py or main.py).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+  </main>
+
+</body>
+</html>

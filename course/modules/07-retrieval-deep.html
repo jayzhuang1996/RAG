@@ -1,0 +1,348 @@
+<section class="module" id="module-7">
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 7 · Deep Dive</span>
+      <h1 class="module-title">retrieval.py — Every Line Explained</h1>
+      <p class="module-subtitle">174 lines. One class. Five methods. The entire search brain of your RAG system.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Setup: Imports, Constants &amp; <code>__init__</code> — Lines 1–30</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> os</span>
+<span class="code-line"><span class="code-keyword">import</span> sys</span>
+<span class="code-line"><span class="code-keyword">from</span> rank_bm25 <span class="code-keyword">import</span> BM25Okapi</span>
+<span class="code-line"><span class="code-keyword">import</span> cohere</span>
+<span class="code-line"><span class="code-keyword">from</span> dotenv <span class="code-keyword">import</span> load_dotenv</span>
+<span class="code-line"></span>
+<span class="code-line">sys.path.<span class="code-function">append</span>(os.path.<span class="code-function">dirname</span>(...))</span>
+<span class="code-line"><span class="code-keyword">from</span> src.db <span class="code-keyword">import</span> get_connection, get_supabase_client</span>
+<span class="code-line"><span class="code-keyword">from</span> src.embeddings <span class="code-keyword">import</span> get_collection, get_embedding_model</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">load_dotenv</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">VECTOR_TOP_K = <span class="code-number">20</span></span>
+<span class="code-line">BM25_TOP_K   = <span class="code-number">20</span></span>
+<span class="code-line">RERANK_TOP_N = <span class="code-number">5</span></span>
+<span class="code-line">USE_SUPABASE = os.<span class="code-function">getenv</span>(<span class="code-string">"USE_SUPABASE"</span>, <span class="code-string">"false"</span>).<span class="code-function">lower</span>() == <span class="code-string">"true"</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">HybridRetriever</span>:</span>
+<span class="code-line">  <span class="code-string">"""Hybrid search: BM25 + (ChromaDB or Supabase)</span></span>
+<span class="code-line">  <span class="code-string">fused via RRF, then reranked by Cohere."""</span></span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):</span>
+<span class="code-line">    self._bm25_index = <span class="code-keyword">None</span></span>
+<span class="code-line">    self._bm25_corpus = <span class="code-keyword">None</span></span>
+<span class="code-line">    self._cohere_client = <span class="code-keyword">None</span></span>
+<span class="code-line">    self._supabase = <span class="code-function">get_supabase_client</span>() <span class="code-keyword">if</span> USE_SUPABASE <span class="code-keyword">else</span> <span class="code-keyword">None</span></span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import os — used to read environment variables and file paths.</p>
+            <p class="tl">Import sys — used to manipulate the Python module search path.</p>
+            <p class="tl">Import the BM25Okapi class from the rank_bm25 library. This is the industry-standard keyword ranking algorithm — the same math behind early Google.</p>
+            <p class="tl">Import cohere — the Python client for Cohere's reranking API.</p>
+            <p class="tl">Import load_dotenv — reads the .env file and makes its key=value pairs available as environment variables.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add the project root to Python's module search path — without this, the src.db imports below would fail with "ModuleNotFoundError."</p>
+            <p class="tl">Import two database functions: get_connection() for SQLite and get_supabase_client() for cloud mode.</p>
+            <p class="tl">Import two embedding functions: get_collection() returns the ChromaDB collection object; get_embedding_model() returns the loaded MiniLM model.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Execute load_dotenv() — this reads the .env file on disk right now and populates environment variables so subsequent os.getenv() calls can find them.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Constant: vector search will return its top 20 candidate chunks before fusion. Module-level means it applies to all instances of this class.</p>
+            <p class="tl">Constant: keyword (BM25) search also returns 20 candidates. Extra spaces are alignment — a stylistic choice by the developer.</p>
+            <p class="tl">Constant: after RRF fusion, Cohere reranks all candidates and returns only the top 5. These 5 become the context fed to the AI.</p>
+            <p class="tl">Read the USE_SUPABASE environment variable. If the value is "true" (case-insensitive), set this to the boolean True; otherwise False. This single flag determines which database path every method in this class will take.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the HybridRetriever class — a blueprint for objects that can search the knowledge base.</p>
+            <p class="tl">↳ Docstring: documents what this class does and the three-step pipeline (BM25 + vector → RRF → Cohere).</p>
+            <p class="tl">↳ End docstring.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Constructor — called automatically when you do HybridRetriever(). Sets up the object's starting state.</p>
+            <p class="tl">BM25 index starts unbuilt. None = "not yet created." It gets built lazily on first use (see build_bm25_index).</p>
+            <p class="tl">The BM25 corpus (the list of tokenized chunks) also starts empty.</p>
+            <p class="tl">Cohere client starts uninitialized. It gets created inside the rerank() method when first needed, not here.</p>
+            <p class="tl">If USE_SUPABASE is True, immediately create the Supabase connection and store it. If False, store None — SQLite connections are created fresh inside each method instead.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2><code>build_bm25_index()</code> &amp; <code>search_bm25()</code> — Lines 31–61</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">build_bm25_index</span>(self):</span>
+<span class="code-line">    <span class="code-string">"""Load child chunks from DB and build index."""</span></span>
+<span class="code-line">    <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">      res = self._supabase.<span class="code-function">table</span>(<span class="code-string">"viking_chunks"</span>)</span>
+<span class="code-line">        .<span class="code-function">select</span>(<span class="code-string">"id, text"</span>).<span class="code-function">eq</span>(<span class="code-string">"type"</span>, <span class="code-string">"child"</span>).<span class="code-function">execute</span>()</span>
+<span class="code-line">      rows = res.data</span>
+<span class="code-line">    <span class="code-keyword">else</span>:</span>
+<span class="code-line">      conn = <span class="code-function">get_connection</span>()</span>
+<span class="code-line">      cursor = conn.<span class="code-function">cursor</span>()</span>
+<span class="code-line">      cursor.<span class="code-function">execute</span>(<span class="code-string">"SELECT id, text FROM chunks WHERE type = 'child'"</span>)</span>
+<span class="code-line">      rows = cursor.<span class="code-function">fetchall</span>()</span>
+<span class="code-line">      conn.<span class="code-function">close</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">    self._bm25_corpus = [</span>
+<span class="code-line">      {<span class="code-string">'id'</span>: r[<span class="code-string">'id'</span>], <span class="code-string">'tokens'</span>: r[<span class="code-string">'text'</span>].<span class="code-function">lower</span>().<span class="code-function">split</span>()}</span>
+<span class="code-line">      <span class="code-keyword">for</span> r <span class="code-keyword">in</span> rows</span>
+<span class="code-line">    ]</span>
+<span class="code-line">    tokenized = [c[<span class="code-string">'tokens'</span>] <span class="code-keyword">for</span> c <span class="code-keyword">in</span> self._bm25_corpus]</span>
+<span class="code-line">    self._bm25_index = <span class="code-function">BM25Okapi</span>(tokenized)</span>
+<span class="code-line">    <span class="code-function">print</span>(<span class="code-string">f"BM25 index built: {len(self._bm25_corpus)} child chunks."</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">search_bm25</span>(self, query, top_k=BM25_TOP_K):</span>
+<span class="code-line">    <span class="code-keyword">if not</span> self._bm25_index:</span>
+<span class="code-line">      self.<span class="code-function">build_bm25_index</span>()</span>
+<span class="code-line">    tokens = query.<span class="code-function">lower</span>().<span class="code-function">split</span>()</span>
+<span class="code-line">    scores = self._bm25_index.<span class="code-function">get_scores</span>(tokens)</span>
+<span class="code-line">    scored = <span class="code-function">sorted</span>(</span>
+<span class="code-line">      <span class="code-function">zip</span>([c[<span class="code-string">'id'</span>] <span class="code-keyword">for</span> c <span class="code-keyword">in</span> self._bm25_corpus], scores),</span>
+<span class="code-line">      key=<span class="code-keyword">lambda</span> x: x[<span class="code-number">1</span>],</span>
+<span class="code-line">      reverse=<span class="code-keyword">True</span></span>
+<span class="code-line">    )</span>
+<span class="code-line">    <span class="code-keyword">return</span> [</span>
+<span class="code-line">      {<span class="code-string">'id'</span>: chunk_id, <span class="code-string">'score'</span>: <span class="code-function">float</span>(score)}</span>
+<span class="code-line">      <span class="code-keyword">for</span> chunk_id, score <span class="code-keyword">in</span> scored[:top_k]</span>
+<span class="code-line">    ]</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the index-building method. Must be called once before BM25 search works.</p>
+            <p class="tl">↳ Docstring.</p>
+            <p class="tl">Choose database path based on the USE_SUPABASE flag set at startup.</p>
+            <p class="tl">Supabase path: query the "viking_chunks" table in the cloud database...</p>
+            <p class="tl">...select only the id and text columns, filtered to rows where type = "child". Child chunks are what get indexed; parent chunks are retrieved for context later.</p>
+            <p class="tl">Store the returned rows list in the variable rows.</p>
+            <p class="tl">Local SQLite path (the else branch).</p>
+            <p class="tl">Open a connection to the local SQLite file.</p>
+            <p class="tl">Create a cursor — the object that executes SQL commands.</p>
+            <p class="tl">Run the SQL query: fetch id and text for all child-type chunks. Equivalent to the Supabase query above.</p>
+            <p class="tl">Fetch all the results into the rows variable at once.</p>
+            <p class="tl">Close the database connection — good housekeeping, frees the file lock.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Build the corpus: for each row in rows, create a dict with the chunk's id and its text lowercased and split on whitespace into a list of word tokens. This list-comprehension format is Python's compact loop syntax.</p>
+            <p class="tl">↳ For each row r, extract the id and tokenize the text.</p>
+            <p class="tl">↳ Close the list comprehension.</p>
+            <p class="tl">Extract just the token lists (without the IDs) — BM25Okapi expects a flat list of token lists.</p>
+            <p class="tl">Build the BM25 index by passing all tokenized documents to BM25Okapi. This is the slow step — it calculates term frequencies and inverse document frequencies for the entire corpus. Happens once at startup.</p>
+            <p class="tl">Print a status message so the user knows it completed and how many chunks are indexed.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the keyword search method. top_k defaults to BM25_TOP_K (20) but can be overridden.</p>
+            <p class="tl">Lazy initialization guard: if the BM25 index hasn't been built yet...</p>
+            <p class="tl">...build it now before proceeding. This makes building automatic — callers don't have to remember to call build_bm25_index() first.</p>
+            <p class="tl">Tokenize the query the same way the corpus was tokenized: lowercase, split on spaces. Consistency is critical — "AI Safety" must become ["ai", "safety"] to match the indexed tokens.</p>
+            <p class="tl">Ask the BM25 index to score every document in the corpus against these query tokens. Returns a list of floats, one per document, in corpus order.</p>
+            <p class="tl">Pair each chunk's id with its score using zip(), then sort the pairs...</p>
+            <p class="tl">↳ zip produces (id, score) tuples; we pull all IDs from the corpus to pair with the score list.</p>
+            <p class="tl">↳ Sort by the score value (index [1] of each tuple)...</p>
+            <p class="tl">↳ ...in descending order (highest score first).</p>
+            <p class="tl">↳ Close the sorted() call. Result: a list of (chunk_id, score) pairs, best match first.</p>
+            <p class="tl">Return the top_k results as a list of clean dicts, slicing [:top_k] to take only the first 20.</p>
+            <p class="tl">↳ Each dict has the chunk's id and its BM25 score as a Python float.</p>
+            <p class="tl">↳ Close the list comprehension.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2><code>search_vector()</code> &amp; <code>rrf_fusion()</code> — Lines 63–92</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">search_vector</span>(self, query, top_k=VECTOR_TOP_K):</span>
+<span class="code-line">    model = <span class="code-function">get_embedding_model</span>()</span>
+<span class="code-line">    query_embedding = model.<span class="code-function">encode</span>([query]).<span class="code-function">tolist</span>()[<span class="code-number">0</span>]</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">      res = self._supabase.<span class="code-function">rpc</span>(<span class="code-string">'match_chunks'</span>, {</span>
+<span class="code-line">        <span class="code-string">'query_embedding'</span>: query_embedding,</span>
+<span class="code-line">        <span class="code-string">'match_threshold'</span>: <span class="code-number">0.1</span>,</span>
+<span class="code-line">        <span class="code-string">'match_count'</span>: top_k</span>
+<span class="code-line">      }).<span class="code-function">execute</span>()</span>
+<span class="code-line">      <span class="code-keyword">return</span> [{<span class="code-string">'id'</span>: r[<span class="code-string">'id'</span>], <span class="code-string">'score'</span>: r[<span class="code-string">'similarity'</span>]} <span class="code-keyword">for</span> r <span class="code-keyword">in</span> res.data]</span>
+<span class="code-line">    <span class="code-keyword">else</span>:</span>
+<span class="code-line">      collection = <span class="code-function">get_collection</span>()</span>
+<span class="code-line">      results = collection.<span class="code-function">query</span>(</span>
+<span class="code-line">        query_embeddings=[query_embedding],</span>
+<span class="code-line">        n_results=top_k,</span>
+<span class="code-line">        include=[<span class="code-string">"distances"</span>]</span>
+<span class="code-line">      )</span>
+<span class="code-line">      ids = results[<span class="code-string">'ids'</span>][<span class="code-number">0</span>]</span>
+<span class="code-line">      scores = [<span class="code-number">1</span> / (<span class="code-number">1</span> + d) <span class="code-keyword">for</span> d <span class="code-keyword">in</span> results[<span class="code-string">'distances'</span>][<span class="code-number">0</span>]]</span>
+<span class="code-line">      <span class="code-keyword">return</span> [{<span class="code-string">'id'</span>: cid, <span class="code-string">'score'</span>: s} <span class="code-keyword">for</span> cid, s <span class="code-keyword">in</span> <span class="code-function">zip</span>(ids, scores)]</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">rrf_fusion</span>(self, bm25_results, vector_results, k=<span class="code-number">60</span>):</span>
+<span class="code-line">    scores = {}</span>
+<span class="code-line">    <span class="code-keyword">for</span> rank, item <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(bm25_results):</span>
+<span class="code-line">      scores[item[<span class="code-string">'id'</span>]] = scores.<span class="code-function">get</span>(item[<span class="code-string">'id'</span>], <span class="code-number">0.0</span>) + <span class="code-number">1.0</span> / (k + rank + <span class="code-number">1</span>)</span>
+<span class="code-line">    <span class="code-keyword">for</span> rank, item <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(vector_results):</span>
+<span class="code-line">      scores[item[<span class="code-string">'id'</span>]] = scores.<span class="code-function">get</span>(item[<span class="code-string">'id'</span>], <span class="code-number">0.0</span>) + <span class="code-number">1.0</span> / (k + rank + <span class="code-number">1</span>)</span>
+<span class="code-line">    fused = <span class="code-function">sorted</span>(scores.<span class="code-function">items</span>(), key=<span class="code-keyword">lambda</span> x: x[<span class="code-number">1</span>], reverse=<span class="code-keyword">True</span>)</span>
+<span class="code-line">    <span class="code-keyword">return</span> [{<span class="code-string">'id'</span>: cid, <span class="code-string">'score'</span>: score} <span class="code-keyword">for</span> cid, score <span class="code-keyword">in</span> fused]</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the vector/semantic search method. Works by converting the question into a vector, then finding the nearest stored vectors.</p>
+            <p class="tl">Load the MiniLM embedding model. get_embedding_model() caches it after the first load, so subsequent calls are instant.</p>
+            <p class="tl">Convert the query string into a vector: encode() returns a 2D array (batch mode), so [query] is a list of one. tolist() converts from NumPy array to plain Python list. [0] gets the first (only) result — a list of 384 floats representing the query's meaning.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Branch based on database mode.</p>
+            <p class="tl">Supabase path: call the match_chunks SQL function stored in Supabase (defined in supabase_schema.sql). This runs a cosine similarity search inside the database itself — an efficient Postgres vector extension operation.</p>
+            <p class="tl">↳ Pass the query embedding as input.</p>
+            <p class="tl">↳ Only return results with cosine similarity above 0.1 — filters out totally unrelated chunks.</p>
+            <p class="tl">↳ Return at most top_k (20) results.</p>
+            <p class="tl">↳ Execute the RPC call and parse results into clean id/score dicts.</p>
+            <p class="tl">Return a list of {id, score} dicts from the Supabase response.</p>
+            <p class="tl">Local ChromaDB path.</p>
+            <p class="tl">Get the ChromaDB collection object — the local vector store that holds all embedded chunks.</p>
+            <p class="tl">Run ChromaDB's nearest-neighbor search: pass the query embedding...</p>
+            <p class="tl">↳ wrapped in a list (ChromaDB expects a batch).</p>
+            <p class="tl">↳ Return the 20 closest matches.</p>
+            <p class="tl">↳ Also return their distances (how far apart the vectors are — lower is more similar).</p>
+            <p class="tl">↳ Close the query call.</p>
+            <p class="tl">Extract the list of chunk IDs. results['ids'] is a list of lists (one per query in the batch); [0] gets the first (and only) query's results.</p>
+            <p class="tl">Convert ChromaDB distances to similarity scores: 1/(1+distance). Distance 0 = identical → score 1.0. Distance 1 = quite different → score 0.5. Inverts the scale so higher = better.</p>
+            <p class="tl">Zip IDs and scores together into clean {id, score} dicts and return them.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the Reciprocal Rank Fusion method. Takes the two ranked lists and merges them. k=60 is the standard RRF smoothing constant.</p>
+            <p class="tl">Create an empty dict to accumulate combined scores. Keys will be chunk IDs, values will be their running RRF score totals.</p>
+            <p class="tl">Loop through BM25 results with their rank positions (0, 1, 2...). For each chunk, add 1/(60 + rank + 1) to its running score. Rank 0 contributes 1/61=0.0164. Rank 19 contributes 1/80=0.0125. The +1 shifts from 0-indexed rank to 1-indexed position.</p>
+            <p class="tl">Same loop for vector results. If a chunk appeared in BOTH lists, its score gets added to twice — rewarding chunks that both methods agreed on. The k=60 constant means even rank-1 in one list can't totally overshadow a chunk that appeared in both lists at rank 10.</p>
+            <p class="tl">Sort the accumulated scores dict by value (the RRF score), highest first. .items() produces (chunk_id, rrf_score) tuples.</p>
+            <p class="tl">Return the sorted list as clean dicts, ready for the reranker.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2><code>rerank()</code>, <code>get_context()</code> &amp; <code>retrieve()</code> — Lines 94–174</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · retrieval.py</span>
+          <pre><code>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">rerank</span>(self, query, fused_results, top_n=RERANK_TOP_N):</span>
+<span class="code-line">    <span class="code-keyword">if not</span> fused_results: <span class="code-keyword">return</span> []</span>
+<span class="code-line">    chunk_ids = [r[<span class="code-string">'id'</span>] <span class="code-keyword">for</span> r <span class="code-keyword">in</span> fused_results]</span>
+<span class="code-line">    <span class="code-comment"># ... fetch chunk texts from DB (same if/else pattern) ...</span></span>
+<span class="code-line">    documents = [chunks_by_id.<span class="code-function">get</span>(cid, <span class="code-string">''</span>) <span class="code-keyword">for</span> cid <span class="code-keyword">in</span> chunk_ids]</span>
+<span class="code-line">    api_key = os.<span class="code-function">getenv</span>(<span class="code-string">"COHERE_API_KEY"</span>)</span>
+<span class="code-line">    <span class="code-keyword">if not</span> api_key: <span class="code-keyword">raise</span> <span class="code-function">ValueError</span>(<span class="code-string">"COHERE_API_KEY not set."</span>)</span>
+<span class="code-line">    co = cohere.<span class="code-function">ClientV2</span>(api_key=api_key)</span>
+<span class="code-line">    response = co.<span class="code-function">rerank</span>(</span>
+<span class="code-line">      model=<span class="code-string">"rerank-v3.5"</span>,</span>
+<span class="code-line">      query=query,</span>
+<span class="code-line">      documents=documents,</span>
+<span class="code-line">      top_n=top_n</span>
+<span class="code-line">    )</span>
+<span class="code-line">    reranked = []</span>
+<span class="code-line">    <span class="code-keyword">for</span> result <span class="code-keyword">in</span> response.results:</span>
+<span class="code-line">      original_idx = result.index</span>
+<span class="code-line">      reranked.<span class="code-function">append</span>({</span>
+<span class="code-line">        <span class="code-string">'id'</span>: chunk_ids[original_idx],</span>
+<span class="code-line">        <span class="code-string">'text'</span>: documents[original_idx],</span>
+<span class="code-line">        <span class="code-string">'score'</span>: result.relevance_score</span>
+<span class="code-line">      })</span>
+<span class="code-line">    <span class="code-keyword">return</span> reranked</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">get_context</span>(self, reranked_results):</span>
+<span class="code-line">    <span class="code-keyword">if not</span> reranked_results: <span class="code-keyword">return</span> []</span>
+<span class="code-line">    child_ids = [r[<span class="code-string">'id'</span>] <span class="code-keyword">for</span> r <span class="code-keyword">in</span> reranked_results]</span>
+<span class="code-line">    <span class="code-comment"># ... fetch child rows + parent rows from DB ...</span></span>
+<span class="code-line">    context = []</span>
+<span class="code-line">    <span class="code-keyword">for</span> res <span class="code-keyword">in</span> reranked_results:</span>
+<span class="code-line">      child_row = child_rows.<span class="code-function">get</span>(res[<span class="code-string">'id'</span>])</span>
+<span class="code-line">      <span class="code-keyword">if not</span> child_row: <span class="code-keyword">continue</span></span>
+<span class="code-line">      p_id = child_row[<span class="code-string">'parent_id'</span>]</span>
+<span class="code-line">      p_row = parent_rows.<span class="code-function">get</span>(p_id, {})</span>
+<span class="code-line">      context.<span class="code-function">append</span>({</span>
+<span class="code-line">        <span class="code-string">'video_id'</span>: child_row[<span class="code-string">'video_id'</span>],</span>
+<span class="code-line">        <span class="code-string">'parent_text'</span>: p_row.<span class="code-function">get</span>(<span class="code-string">'text'</span>, res[<span class="code-string">'text'</span>]),</span>
+<span class="code-line">        <span class="code-string">'child_text'</span>: res[<span class="code-string">'text'</span>],</span>
+<span class="code-line">        <span class="code-string">'child_score'</span>: res[<span class="code-string">'score'</span>]</span>
+<span class="code-line">      })</span>
+<span class="code-line">    <span class="code-keyword">return</span> context</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">def</span> <span class="code-function">retrieve</span>(self, query):</span>
+<span class="code-line">    bm25_results   = self.<span class="code-function">search_bm25</span>(query)</span>
+<span class="code-line">    vector_results = self.<span class="code-function">search_vector</span>(query)</span>
+<span class="code-line">    fused          = self.<span class="code-function">rrf_fusion</span>(bm25_results, vector_results)</span>
+<span class="code-line">    reranked       = self.<span class="code-function">rerank</span>(query, fused)</span>
+<span class="code-line">    <span class="code-keyword">return</span> self.<span class="code-function">get_context</span>(reranked)</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the neural reranking method. Gets the query, the fused candidate list, and returns only the top_n (default 5).</p>
+            <p class="tl">Guard clause: if no results came in (empty list), return immediately with an empty list — nothing to rerank.</p>
+            <p class="tl">Extract just the chunk IDs from the fused results into a plain list. Needed to fetch text and to map Cohere's response back to our records.</p>
+            <p class="tl">↳ (Database fetch omitted here for brevity: loads text for each chunk_id using the same if/else Supabase vs SQLite branch pattern seen in build_bm25_index.)</p>
+            <p class="tl">Build the documents list: for each chunk_id in order, look up its text in chunks_by_id. If somehow missing (shouldn't happen), default to empty string — avoids a KeyError crash.</p>
+            <p class="tl">Read the COHERE_API_KEY environment variable at call time (not at startup) — so a missing key fails at query time with a clear error, not silently at import time.</p>
+            <p class="tl">Validate the key exists. If not, raise a descriptive error immediately — fail loudly so the user knows exactly what's wrong.</p>
+            <p class="tl">Create the Cohere API client using the key. ClientV2 is Cohere's newer API version with better performance.</p>
+            <p class="tl">Call Cohere's rerank endpoint. This is a transformer model that reads the query and each document together and assigns a relevance score. The API call goes to Cohere's servers.</p>
+            <p class="tl">↳ Use the rerank-v3.5 model — Cohere's current best reranker as of late 2024.</p>
+            <p class="tl">↳ The original query string — Cohere reads this against each document.</p>
+            <p class="tl">↳ The list of chunk texts to score.</p>
+            <p class="tl">↳ Only return the top 5 — Cohere scores all, returns the best top_n.</p>
+            <p class="tl">↳ Close the rerank() call.</p>
+            <p class="tl">Initialize the output list.</p>
+            <p class="tl">Loop through Cohere's results. Each result has an index (position in the original documents list) and a relevance_score (0-1, higher = more relevant).</p>
+            <p class="tl">Get the position in our original documents list that this Cohere result refers to. Cohere returns results in its own order — we use this index to look up the original chunk.</p>
+            <p class="tl">Build the output dict for this reranked result.</p>
+            <p class="tl">↳ The chunk's ID, looked up by its original position in chunk_ids list.</p>
+            <p class="tl">↳ The chunk's text, looked up the same way.</p>
+            <p class="tl">↳ Cohere's relevance score — a float between 0 and 1 indicating how relevant this passage is to the query.</p>
+            <p class="tl">↳ Close the dict and append().</p>
+            <p class="tl">Return the reranked list — top 5 passages ordered by Cohere's judgment of relevance.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the context-fetching method. Its job: take child chunk IDs from reranker, look up their parent chunks, return parent text for the AI.</p>
+            <p class="tl">Guard: return early on empty input.</p>
+            <p class="tl">Extract the child IDs from the reranked results.</p>
+            <p class="tl">↳ (Database fetches omitted: queries for child rows to get parent_id, then queries for parent rows to get their text.)</p>
+            <p class="tl">Initialize the context output list.</p>
+            <p class="tl">Loop through reranked results — these are already in Cohere's relevance order.</p>
+            <p class="tl">Look up the child chunk's full database row (which contains its parent_id).</p>
+            <p class="tl">If the child row is missing (edge case — shouldn't happen but database can be inconsistent), skip this result with continue.</p>
+            <p class="tl">Get this child's parent_id — the foreign key. This is the pointer to the larger chunk.</p>
+            <p class="tl">Look up the parent row. {} is the fallback if parent is missing — prevents KeyError.</p>
+            <p class="tl">Build the context dict to return to query.py.</p>
+            <p class="tl">↳ Which video this came from — used to look up the video title for citations.</p>
+            <p class="tl">↳ The PARENT's text (3,000 chars) — this is what gets sent to the AI. Falls back to child text if parent lookup failed.</p>
+            <p class="tl">↳ The small CHILD's text (1,000 chars) — stored for reference but not sent to AI.</p>
+            <p class="tl">↳ Cohere's relevance score for this chunk — carries through for potential future use.</p>
+            <p class="tl">↳ Close dict and append.</p>
+            <p class="tl">Return the final context list — typically 5 dicts, each containing a parent's text and source metadata.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">The public method that orchestrates everything. Called by query.py for every question. Four lines for four steps.</p>
+            <p class="tl">Step 1: keyword search — returns 20 candidates ranked by term frequency.</p>
+            <p class="tl">Step 2: semantic search — returns 20 candidates ranked by meaning similarity.</p>
+            <p class="tl">Step 3: RRF fusion — merges the two lists into one consensus ranking.</p>
+            <p class="tl">Step 4: neural reranking — Cohere reads all candidates and picks the best 5.</p>
+            <p class="tl">Step 5: context fetch — upgrade the 5 child chunks to their larger parent chunks and return.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

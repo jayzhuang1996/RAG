@@ -1,0 +1,276 @@
+<section class="module" id="module-8">
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 8 · Deep Dive</span>
+      <h1 class="module-title">query.py — Every Line Explained</h1>
+      <p class="module-subtitle">135 lines. The head chef. It orchestrates retrieval, builds the prompt, calls Moonshot, and streams the answer back to you.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Imports, Singleton &amp; Context Builder — Lines 1–54</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · query.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> os</span>
+<span class="code-line"><span class="code-keyword">import</span> sys</span>
+<span class="code-line"><span class="code-keyword">from</span> dotenv <span class="code-keyword">import</span> load_dotenv</span>
+<span class="code-line"><span class="code-keyword">from</span> openai <span class="code-keyword">import</span> OpenAI</span>
+<span class="code-line"></span>
+<span class="code-line">sys.path.<span class="code-function">append</span>(os.path.<span class="code-function">dirname</span>(...))</span>
+<span class="code-line"><span class="code-keyword">from</span> src.db <span class="code-keyword">import</span> get_connection, get_supabase_client</span>
+<span class="code-line"><span class="code-keyword">from</span> src.retrieval <span class="code-keyword">import</span> HybridRetriever</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-function">load_dotenv</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">USE_SUPABASE = os.<span class="code-function">getenv</span>(<span class="code-string">"USE_SUPABASE"</span>, <span class="code-string">"false"</span>).<span class="code-function">lower</span>() == <span class="code-string">"true"</span></span>
+<span class="code-line"></span>
+<span class="code-line">_retriever = <span class="code-keyword">None</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">get_retriever</span>():</span>
+<span class="code-line">  <span class="code-keyword">global</span> _retriever</span>
+<span class="code-line">  <span class="code-keyword">if</span> _retriever <span class="code-keyword">is None</span>:</span>
+<span class="code-line">    _retriever = <span class="code-function">HybridRetriever</span>()</span>
+<span class="code-line">    _retriever.<span class="code-function">build_bm25_index</span>()</span>
+<span class="code-line">  <span class="code-keyword">return</span> _retriever</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">_build_context_block</span>(context_results):</span>
+<span class="code-line">  <span class="code-keyword">if not</span> context_results:</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-string">""</span>, []</span>
+<span class="code-line"></span>
+<span class="code-line">  blocks = []</span>
+<span class="code-line">  sources = []</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">    supabase = <span class="code-function">get_supabase_client</span>()</span>
+<span class="code-line">  <span class="code-keyword">else</span>:</span>
+<span class="code-line">    conn = <span class="code-function">get_connection</span>()</span>
+<span class="code-line">    cursor = conn.<span class="code-function">cursor</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">for</span> i, c <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(context_results, start=<span class="code-number">1</span>):</span>
+<span class="code-line">    video_id = c[<span class="code-string">'video_id'</span>]</span>
+<span class="code-line">    title = video_id</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">      res = supabase.<span class="code-function">table</span>(<span class="code-string">"viking_videos"</span>).<span class="code-function">select</span>(<span class="code-string">"title"</span>).<span class="code-function">eq</span>(<span class="code-string">"id"</span>, video_id).<span class="code-function">execute</span>()</span>
+<span class="code-line">      <span class="code-keyword">if</span> res.data: title = res.data[<span class="code-number">0</span>][<span class="code-string">'title'</span>]</span>
+<span class="code-line">    <span class="code-keyword">else</span>:</span>
+<span class="code-line">      cursor.<span class="code-function">execute</span>(<span class="code-string">"SELECT title FROM videos WHERE id = ?"</span>, (video_id,))</span>
+<span class="code-line">      row = cursor.<span class="code-function">fetchone</span>()</span>
+<span class="code-line">      <span class="code-keyword">if</span> row: title = row[<span class="code-string">'title'</span>]</span>
+<span class="code-line"></span>
+<span class="code-line">    sources.<span class="code-function">append</span>({<span class="code-string">'index'</span>: i, <span class="code-string">'video_id'</span>: video_id, <span class="code-string">'title'</span>: title})</span>
+<span class="code-line">    blocks.<span class="code-function">append</span>(<span class="code-string">f"[Source {i}: {title}]\n{c['parent_text']}"</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">if not</span> USE_SUPABASE: conn.<span class="code-function">close</span>()</span>
+<span class="code-line">  <span class="code-keyword">return</span> <span class="code-string">"\n\n---\n\n"</span>.<span class="code-function">join</span>(blocks), sources</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import os — for environment variable access and file path operations.</p>
+            <p class="tl">Import sys — for modifying the Python module search path.</p>
+            <p class="tl">Import load_dotenv — reads the .env file and populates environment variables.</p>
+            <p class="tl">Import OpenAI — the official OpenAI Python client. Moonshot's API is compatible with the OpenAI format, so we reuse this client by pointing it at Moonshot's endpoint.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Fix module resolution: add the project root to Python's search path so the src.* imports below work from any working directory.</p>
+            <p class="tl">Import the two database connection helpers — same pattern seen throughout the codebase.</p>
+            <p class="tl">Import the HybridRetriever class from retrieval.py — this is the search engine we'll drive.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Read the .env file immediately at import time. All subsequent os.getenv() calls in this file will find the values from .env.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Read the USE_SUPABASE flag — identical pattern to retrieval.py. Determines which database path all methods in this file will take.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Module-level variable for the Singleton retriever. Starts as None (not built). Underscore prefix signals "this is private, not for external code to touch."</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Singleton accessor function — the ONLY way code should get a retriever instance.</p>
+            <p class="tl">Declare intent to use and modify the module-level _retriever variable (not create a local one).</p>
+            <p class="tl">Check if the retriever has been created yet. If it is None, we need to create it.</p>
+            <p class="tl">Create a new HybridRetriever instance — this sets up the database connection but does NOT build the BM25 index yet.</p>
+            <p class="tl">Build the BM25 index: reads all child chunks from the database and computes term frequencies. The slow one-time step. Takes 2–5 seconds on large datasets.</p>
+            <p class="tl">Return the retriever — either the newly built one or the cached one from a previous call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Private helper function (underscore prefix = internal use only) that takes the context results from retrieval and formats them into a prompt-ready string plus a sources list for citation.</p>
+            <p class="tl">Guard: if retrieval returned nothing...</p>
+            <p class="tl">...return empty string (for the context block) and empty list (for sources). The caller will handle the empty case.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">List that will collect formatted text blocks — one per source passage.</p>
+            <p class="tl">List that will collect source metadata dicts — used to print the "Sources used:" header.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Open a database connection once, before the loop. Opening it inside the loop would mean one connection per result — inefficient.</p>
+            <p class="tl">Supabase path: get the cloud client.</p>
+            <p class="tl">SQLite path.</p>
+            <p class="tl">Get a connection to the local database file.</p>
+            <p class="tl">Create a cursor so we can execute SQL queries on it.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Loop through the context results. enumerate(start=1) numbering starts at 1 (not 0) — Source 1, Source 2... matches the [Source N] citations in the AI's answer.</p>
+            <p class="tl">Extract the video_id from this context dict — the YouTube video's ID string.</p>
+            <p class="tl">Default title fallback: if we can't find the video's title in the database, use the video_id itself as the display name.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Try to look up the human-readable title instead of the raw ID.</p>
+            <p class="tl">Supabase: query the viking_videos table for the title where id matches this video_id.</p>
+            <p class="tl">If the query returned data (not empty), update title to the actual video name. [0] gets the first row; ['title'] gets the title field.</p>
+            <p class="tl">SQLite path.</p>
+            <p class="tl">Run parameterized SQL. The (video_id,) tuple safely passes the value — prevents SQL injection. The ? is the placeholder.</p>
+            <p class="tl">Fetch the single row result.</p>
+            <p class="tl">If a row was found, update title to the actual video title from the database.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add source metadata to the sources list — index number, video_id, and resolved title.</p>
+            <p class="tl">Format this source's text block as "[Source N: Video Title]\n{parent text}" and add to blocks. This label is what makes the AI cite "[Source 1]" in its answer.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Close the SQLite connection after the loop — good housekeeping. No need to close Supabase (handled internally by the client library).</p>
+            <p class="tl">Return TWO things: (1) all the text blocks joined by "---" separators (this becomes the context section of the AI prompt), and (2) the sources list for printing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Config Loader &amp; <code>generate_answer()</code> — Lines 57–126</h2>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · query.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> yaml</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">get_config_prompt</span>():</span>
+<span class="code-line">  config_path = os.path.<span class="code-function">join</span>(</span>
+<span class="code-line">    os.path.<span class="code-function">dirname</span>(os.path.<span class="code-function">dirname</span>(</span>
+<span class="code-line">      os.path.<span class="code-function">abspath</span>(__file__))),</span>
+<span class="code-line">    <span class="code-string">'config'</span>, <span class="code-string">'prompts.yaml'</span></span>
+<span class="code-line">  )</span>
+<span class="code-line">  <span class="code-keyword">with</span> <span class="code-function">open</span>(config_path, <span class="code-string">'r'</span>) <span class="code-keyword">as</span> f:</span>
+<span class="code-line">    config = yaml.<span class="code-function">safe_load</span>(f)</span>
+<span class="code-line">  <span class="code-keyword">return</span> config.<span class="code-function">get</span>(<span class="code-string">'query_system_prompt'</span>, <span class="code-string">"Answer based on context."</span>)</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">generate_answer</span>(query: str) -&gt; str:</span>
+<span class="code-line">  <span class="code-string">"""Full RAG pipeline: retrieve → prompt → call Moonshot → return."""</span></span>
+<span class="code-line">  system_prompt = <span class="code-function">get_config_prompt</span>()</span>
+<span class="code-line">  retriever = <span class="code-function">get_retriever</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">"Retrieving relevant context..."</span>)</span>
+<span class="code-line">  context_results = retriever.<span class="code-function">retrieve</span>(query)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">if not</span> context_results:</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-string">"No relevant content found in the knowledge base."</span></span>
+<span class="code-line"></span>
+<span class="code-line">  context_text, sources = <span class="code-function">_build_context_block</span>(context_results)</span>
+<span class="code-line"></span>
+<span class="code-line">  user_message = <span class="code-string">f"""Context from podcast transcripts:</span></span>
+<span class="code-line"><span class="code-string">{context_text}</span></span>
+<span class="code-line"><span class="code-string">---</span></span>
+<span class="code-line"><span class="code-string">Question: {query}</span></span>
+<span class="code-line"><span class="code-string">Answer (cite sources as [Source N]):</span></span>
+<span class="code-line"><span class="code-string">"""</span></span>
+<span class="code-line"></span>
+<span class="code-line">  moonshot_key = os.<span class="code-function">getenv</span>(<span class="code-string">"MOONSHOT_API_KEY"</span>)</span>
+<span class="code-line">  <span class="code-keyword">if not</span> moonshot_key:</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-string">"Backend Error: MOONSHOT_API_KEY missing."</span></span>
+<span class="code-line"></span>
+<span class="code-line">  client = <span class="code-function">OpenAI</span>(</span>
+<span class="code-line">    api_key=moonshot_key,</span>
+<span class="code-line">    base_url=<span class="code-string">"https://api.moonshot.ai/v1"</span></span>
+<span class="code-line">  )</span>
+<span class="code-line"></span>
+<span class="code-line">  response = client.chat.completions.<span class="code-function">create</span>(</span>
+<span class="code-line">    model=<span class="code-string">"moonshot-v1-128k"</span>,</span>
+<span class="code-line">    messages=[</span>
+<span class="code-line">      {<span class="code-string">"role"</span>: <span class="code-string">"system"</span>, <span class="code-string">"content"</span>: system_prompt},</span>
+<span class="code-line">      {<span class="code-string">"role"</span>: <span class="code-string">"user"</span>,   <span class="code-string">"content"</span>: user_message}</span>
+<span class="code-line">    ],</span>
+<span class="code-line">    temperature=<span class="code-number">0.3</span>,</span>
+<span class="code-line">    stream=<span class="code-keyword">True</span></span>
+<span class="code-line">  )</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">f"\n{'='*60}\nQuery: {query}\n{'='*60}"</span>)</span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">"\nSources used:"</span>)</span>
+<span class="code-line">  <span class="code-keyword">for</span> s <span class="code-keyword">in</span> sources:</span>
+<span class="code-line">    <span class="code-function">print</span>(<span class="code-string">f"  [{s['index']}] {s['title']}"</span>)</span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">f"\n{'='*60}\nAnswer:\n"</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">  full_answer = <span class="code-string">""</span></span>
+<span class="code-line">  <span class="code-keyword">for</span> chunk <span class="code-keyword">in</span> response:</span>
+<span class="code-line">    delta = chunk.choices[<span class="code-number">0</span>].delta.content <span class="code-keyword">or</span> <span class="code-string">""</span></span>
+<span class="code-line">    <span class="code-function">print</span>(delta, end=<span class="code-string">""</span>, flush=<span class="code-keyword">True</span>)</span>
+<span class="code-line">    full_answer += delta</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-function">print</span>(<span class="code-string">f"\n{'='*60}\n"</span>)</span>
+<span class="code-line">  <span class="code-keyword">return</span> full_answer</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import yaml — for reading the prompts.yaml config file. This late import is fine; Python only imports it when the function is called.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the config loader. Reads the system prompt from a YAML file instead of hardcoding it — lets you change the AI's behavior without touching Python code.</p>
+            <p class="tl">Start building the path to the config file. os.path.join constructs a path that works on both Mac and Windows.</p>
+            <p class="tl">os.path.abspath(__file__) = this file's absolute path. os.path.dirname() = the directory it's in (src/). Calling dirname() twice goes up two levels to the project root.</p>
+            <p class="tl">↳ This gives us the project root directory path.</p>
+            <p class="tl">Append 'config/prompts.yaml' to the project root. On Mac: /path/to/RAG/config/prompts.yaml.</p>
+            <p class="tl">↳ Close os.path.join().</p>
+            <p class="tl">Open the YAML file in read mode. "with" ensures it closes automatically when done, even if an error occurs.</p>
+            <p class="tl">Parse the YAML file into a Python dictionary. safe_load prevents code execution from malicious YAML — always use safe_load, not load().</p>
+            <p class="tl">Return the value of 'query_system_prompt' from the dict. The second argument is a fallback: if the key doesn't exist, use this simple default instead of crashing.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Define the main public function. The type annotation (query: str → str) documents what goes in and what comes out. This is what api.py and main.py both call.</p>
+            <p class="tl">↳ Docstring: describes the three-step pipeline.</p>
+            <p class="tl">Load the system prompt from config — this becomes the AI's persona and behavior instructions.</p>
+            <p class="tl">Get (or create) the cached HybridRetriever. On first call: builds BM25 index. On subsequent calls: returns instantly from memory.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Print a status message to the terminal so the user knows work is happening — RAG retrieval takes 2–5 seconds.</p>
+            <p class="tl">Run the complete retrieval pipeline: BM25 + vector → RRF fusion → Cohere rerank → parent context fetch. Returns a list of up to 5 context dicts.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Guard: if retrieval found nothing relevant in the knowledge base...</p>
+            <p class="tl">...return a human-readable "I don't know" message immediately without calling the AI. Avoids an expensive API call that would produce a hallucinated answer.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Format the context results into a single text block and a sources list. Using tuple unpacking: both return values assigned in one line.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Build the user message using an f-string (a string with {variable} placeholders filled in). This is the actual prompt sent to the AI.</p>
+            <p class="tl">↳ Insert the formatted context block — all 5 retrieved passages separated by "---" dividers.</p>
+            <p class="tl">↳ The visual separator between context and question in the prompt.</p>
+            <p class="tl">↳ Insert the user's original question.</p>
+            <p class="tl">↳ Instruct the AI explicitly to cite sources as [Source N]. This instruction is why the AI's answer contains "[Source 1]" style citations.</p>
+            <p class="tl">↳ Close the f-string.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Read the Moonshot API key from environment (loaded from .env via load_dotenv earlier).</p>
+            <p class="tl">Guard: if the key is missing...</p>
+            <p class="tl">...return a descriptive error message immediately without attempting the API call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Create the API client using OpenAI's Python library — but pointed at Moonshot's servers instead of OpenAI's.</p>
+            <p class="tl">↳ Authenticate with the Moonshot key.</p>
+            <p class="tl">↳ Override the default base URL to point at Moonshot's OpenAI-compatible endpoint. This is the "trick" that lets us reuse the OpenAI client with any compatible API.</p>
+            <p class="tl">↳ Close the OpenAI() constructor.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Make the API call to generate the answer. This sends both messages to Moonshot's servers.</p>
+            <p class="tl">↳ Specify the model: moonshot-v1-128k. The 128k refers to its context window size — it can read 128,000 tokens at once, which is why it handles multiple large parent chunks without truncation.</p>
+            <p class="tl">↳ The messages array defines the conversation. Two roles: system and user.</p>
+            <p class="tl">↳ System message: sets the AI's persona and behavior rules — loaded from prompts.yaml.</p>
+            <p class="tl">↳ User message: the actual question + all the retrieved context passages.</p>
+            <p class="tl">↳ Close the messages array.</p>
+            <p class="tl">↳ temperature=0.3: controls randomness. 0.0 = deterministic/robotic, 1.0 = creative/unpredictable. 0.3 is factual but not completely rigid — a good middle ground for QA tasks.</p>
+            <p class="tl">↳ stream=True: instead of waiting for the complete answer, receive it word-by-word as it's generated. Makes the UX feel responsive — you see words appearing instead of a 10-second blank wait.</p>
+            <p class="tl">↳ Close the create() call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Print a visual header: a row of 60 = signs, then the query, then another row. f"{'='*60}" multiplies the string "=" sixty times.</p>
+            <p class="tl">Print "Sources used:" header.</p>
+            <p class="tl">Loop through the sources list.</p>
+            <p class="tl">Print each source: "[1] Podcast Episode Title". This tells the user where the AI's answer came from.</p>
+            <p class="tl">Print the "Answer:" header with another separator row.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Initialize an empty string to accumulate the streamed answer.</p>
+            <p class="tl">Iterate through the stream. With stream=True, "response" is an iterator — each iteration yields one small chunk of the answer (a few words or tokens).</p>
+            <p class="tl">Extract the text content from this chunk. choices[0] is the first (only) generation choice. .delta.content is the new text added in this stream chunk. The "or ''" handles None values (which appear at the end of the stream as a termination signal).</p>
+            <p class="tl">Print each delta immediately without a newline (end="") and force the output buffer to flush (flush=True). This combination makes words appear one-by-one in the terminal as the AI generates them — the "live typing" effect.</p>
+            <p class="tl">Append each delta to full_answer to build the complete response string.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Print a final separator row after the answer is complete.</p>
+            <p class="tl">Return the full accumulated answer string back to the caller (api.py or main.py).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

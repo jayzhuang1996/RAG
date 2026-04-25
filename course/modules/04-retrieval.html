@@ -1,0 +1,118 @@
+<section class="module" id="module-4">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 4</span>
+      <h1 class="module-title">Finding the Right Answer</h1>
+      <p class="module-subtitle">Why your app uses three different search methods at once — and how they work together.</p>
+    </div>
+
+    <div class="screen">
+      <h2>The Problem with a Single Search</h2>
+      <p>Imagine you're trying to find a quote by Sam Altman about "making AI systems that don't hurt people." You have two tools:</p>
+      <ul style="margin: 1rem 0; padding-left: 1.5rem; line-height: 2">
+        <li><strong>Keyword search</strong> — great if it says "Sam Altman" literally, terrible if he's referred to as "the OpenAI CEO"</li>
+        <li><strong>Semantic/vector search</strong> — great for understanding meaning ("not hurt" ≈ "safety"), terrible for exact names and rare terms</li>
+      </ul>
+      <p>Neither alone is reliable. Your app uses <em>both together</em> — a technique called <span class="term" data-definition="Hybrid search combines two different retrieval methods — keyword matching (BM25) and semantic similarity (vector search) — and merges their results. The combined result is more reliable than either method alone.">hybrid search</span> followed by a neural reranker. Here is the three-step process:</p>
+    </div>
+
+    <div class="screen">
+      <h2>Step 1 + 2: Parallel Search and Fusion</h2>
+      <p>The <code>HybridRetriever.retrieve()</code> method runs BM25 and vector search in parallel, then fuses their ranked lists using an algorithm called <span class="term" data-definition="RRF (Reciprocal Rank Fusion) is a simple formula for combining ranked lists. For each document, it adds up 1/(rank + 60) from each list. Documents that appear near the top of BOTH lists get the highest combined score. The +60 dampens the effect of being #1 vs #5 — it rewards appearing in multiple lists over being ranked first in just one.">RRF</span>:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">retrieve</span>(self, query):</span>
+<span class="code-line">  bm25 = self.<span class="code-function">search_bm25</span>(query)</span>
+<span class="code-line">  vector = self.<span class="code-function">search_vector</span>(query)</span>
+<span class="code-line">  fused = self.<span class="code-function">rrf_fusion</span>(bm25, vector)</span>
+<span class="code-line">  reranked = self.<span class="code-function">rerank</span>(query, fused)</span>
+<span class="code-line">  <span class="code-keyword">return</span> self.<span class="code-function">get_context</span>(reranked)</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">The main retrieval function — called every time you ask a question.</p>
+            <p class="tl">Run a keyword search — find chunks that contain the exact words you used.</p>
+            <p class="tl">Run a semantic search — find chunks that are meaningfully similar to your question.</p>
+            <p class="tl">Merge both ranked lists — chunks appearing near the top of both get promoted.</p>
+            <p class="tl">Pass the merged list to Cohere AI for a final neural reranking pass.</p>
+            <p class="tl">Return the parent chunks (full context) for each top result.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Step 3: The Reranker — Your Quality Filter</h2>
+      <p>After BM25 + vector search gives you 20 candidates, the fused list is passed to <span class="term" data-definition="Cohere Rerank is an AI model that reads your query and a list of candidate passages and scores each passage for how relevant it actually is to your question. Unlike BM25 or vectors, it understands the full meaning of both the query and the passage before scoring.">Cohere Rerank</span>. This is the most important quality step.</p>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">🏆</div>
+        <div class="callout-content">
+          <strong class="callout-title">Why reranking matters</strong>
+          <p>BM25 and vector search are fast but imprecise — they're doing math, not reading. Cohere actually <em>reads</em> your question and each candidate passage together before deciding which is most relevant. It catches the difference between a passage that mentions "AI safety" in passing vs. one where it's the entire subject.</p>
+        </div>
+      </div>
+
+      <p>The constants that control this are set at the top of <code>retrieval.py</code>:</p>
+
+      <div class="badge-list">
+        <div class="badge-item">
+          <code class="badge-code">VECTOR_TOP_K = 20</code>
+          <span class="badge-desc">Vector search returns its top 20 candidates before fusion</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">BM25_TOP_K = 20</code>
+          <span class="badge-desc">Keyword search also returns 20 candidates</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">RERANK_TOP_N = 5</code>
+          <span class="badge-desc">Cohere reranks all candidates and returns the final top 5 for the AI</span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">🎛️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Tuning tip for you</strong>
+          <p>If your answers feel incomplete, try increasing <code>RERANK_TOP_N</code> to 7-8. This passes more context to the AI. If answers feel unfocused or too long, decrease it. This is a dial you control.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Scenario: What Would a Senior Engineer Do?</h2>
+      <div class="quiz-container" id="quiz-module4">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Correct. The Singleton pattern means the BM25 index is built once at startup and reused for all queries. Rebuilding it on each query would add 5-10 seconds per question — totally unacceptable for a user-facing tool."
+             data-explanation-wrong="Look closely at the query.py code. There is a _retriever global variable and a get_retriever() function that checks if it has been built before. This is the Singleton pattern — built once, reused forever.">
+          <h3 class="quiz-question">Why does query.py use a global <code>_retriever</code> variable instead of creating a new HybridRetriever on every query?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>It is a bug — it should create a fresh retriever each time for consistency</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The BM25 index takes seconds to build from the database — building it once and reusing it makes queries fast</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The HybridRetriever class does not support multiple instances</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>

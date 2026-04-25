@@ -1,0 +1,158 @@
+<section class="module" id="module-5">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 5</span>
+      <h1 class="module-title">The Outside World</h1>
+      <p class="module-subtitle">Four external services your app depends on — and what happens if any of them goes down.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Your App Is Not an Island</h2>
+      <p>Your Podcast RAG app is the orchestrator, but it delegates the expensive or specialized work to external services. Think of your app as a conductor — it doesn't play any of the instruments, it coordinates the musicians.</p>
+      <p>Here are the four external dependencies, what they do, and what their failure mode looks like:</p>
+
+      <div class="arch-diagram">
+        <div class="arch-zone arch-zone-browser">
+          <h4 class="arch-zone-label">Your Application</h4>
+          <div class="arch-component" data-desc="Your orchestrator. Runs locally. Coordinates all other services but does very little computation itself."
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🎵</div>
+            <span>RAG App (main.py)</span>
+          </div>
+        </div>
+        <div class="arch-zone arch-zone-external">
+          <h4 class="arch-zone-label">External Services</h4>
+          <div class="arch-component" data-desc="YouTube: Source of all video metadata and transcripts. If a video has no auto-generated captions, the transcript step fails silently for that video."
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">▶️</div>
+            <span>YouTube</span>
+          </div>
+          <div class="arch-component" data-desc="Cohere Rerank API: The neural reranker that scores each candidate passage for relevance. If this API is down, the app raises a ValueError and the query fails entirely. Key: COHERE_API_KEY"
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🏆</div>
+            <span>Cohere Rerank</span>
+          </div>
+          <div class="arch-component" data-desc="Moonshot AI: The large language model that synthesizes your final answer from retrieved passages. Uses the OpenAI-compatible API. Key: MOONSHOT_API_KEY. Model: moonshot-v1-128k (128k context window)"
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🤖</div>
+            <span>Moonshot AI</span>
+          </div>
+          <div class="arch-component" data-desc="ChromaDB (local) or Supabase (cloud): The vector database storing all your embedded chunks. ChromaDB runs on your machine; Supabase runs in the cloud. Controlled by USE_SUPABASE env variable."
+               onclick="showArchDesc(this)">
+            <div class="arch-icon">🗄️</div>
+            <span>ChromaDB / Supabase</span>
+          </div>
+        </div>
+        <div class="arch-description" id="arch-desc">Click any component to learn what it does and how it fails</div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Dual-Database Architecture</h2>
+      <p>One of the most interesting architectural decisions: your app supports <em>two different database modes</em>, switchable via a single environment variable. This is called the <span class="term" data-definition="The Strategy pattern is a software design where you define an interface for an operation, then swap between multiple implementations. Here, get_connection() and get_supabase_client() are the two strategies — local SQLite vs cloud Supabase — and a single USE_SUPABASE flag switches between them without changing any query logic.">Strategy pattern</span>.</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE — retrieval.py</span>
+          <pre><code>
+<span class="code-line">USE_SUPABASE = os.<span class="code-function">getenv</span>(</span>
+<span class="code-line">  <span class="code-string">"USE_SUPABASE"</span>, <span class="code-string">"false"</span></span>
+<span class="code-line">).<span class="code-function">lower</span>() == <span class="code-string">"true"</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">if</span> USE_SUPABASE:</span>
+<span class="code-line">  res = self._supabase</span>
+<span class="code-line">    .<span class="code-function">table</span>(<span class="code-string">"viking_chunks"</span>)</span>
+<span class="code-line">    .<span class="code-function">select</span>(<span class="code-string">"id, text"</span>)</span>
+<span class="code-line">    .<span class="code-function">execute</span>()</span>
+<span class="code-line"><span class="code-keyword">else</span>:</span>
+<span class="code-line">  cursor.<span class="code-function">execute</span>(</span>
+<span class="code-line">    <span class="code-string">"SELECT id, text FROM chunks"</span></span>
+<span class="code-line">  )</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Read the USE_SUPABASE environment variable. Default: "false" (local mode).</p>
+            <p class="tl">Convert to lowercase, check if it equals "true". Result is a boolean flag.</p>
+            <p class="tl">If you set USE_SUPABASE=true in your .env file...</p>
+            <p class="tl">...queries go to Supabase (cloud Postgres database). Perfect for Railway deployments.</p>
+            <p class="tl">Otherwise...</p>
+            <p class="tl">...queries go to local SQLite. No internet required, great for development.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Environment Variables: Your App's Secret Config</h2>
+      <p>Your app reads its configuration from a <code>.env</code> file — a plain text file that stores sensitive keys and settings that should never be committed to Git. Here is what each one does:</p>
+
+      <div class="badge-list">
+        <div class="badge-item">
+          <code class="badge-code">MOONSHOT_API_KEY</code>
+          <span class="badge-desc">Your Moonshot AI key — required for query mode. Without it, every query returns a config error message.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">COHERE_API_KEY</code>
+          <span class="badge-desc">Your Cohere reranking key — required for query mode. The reranker is not optional; removing it breaks retrieval.</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">USE_SUPABASE</code>
+          <span class="badge-desc">true = cloud Postgres (for production/Railway). false or absent = local SQLite (for development).</span>
+        </div>
+        <div class="badge-item">
+          <code class="badge-code">SUPABASE_URL + SUPABASE_KEY</code>
+          <span class="badge-desc">Only needed when USE_SUPABASE=true. Connects to your Supabase project.</span>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Never commit .env to Git</strong>
+          <p>Your <code>.gitignore</code> already excludes <code>.env</code>. These API keys are essentially passwords — whoever has them can use your paid API quota. The <code>.env.example</code> file in your repo shows the required variable names without any real values, so collaborators know what to fill in.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Final Knowledge Check</h2>
+      <div class="quiz-container" id="quiz-module5">
+        <div class="quiz-question-block"
+             data-correct="option-c"
+             data-explanation-right="Correct. Moonshot uses a 128,000 token context window, which is why it can handle multiple large parent chunks (each ~750 tokens) as context without truncation. This was a deliberate model choice."
+             data-explanation-wrong="Check module 4 again. The RERANK_TOP_N=5 setting means 5 parent chunks are returned. Each parent is ~750 tokens. That is 3,750 tokens of context for the AI — which fits easily even in a standard 4k window, let alone Moonshot's 128k.">
+          <h3 class="quiz-question">Your app uses Moonshot's "moonshot-v1-128k" model. Why does the context window size matter for a RAG system?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Larger context windows are always better — it is a marketing number</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The system prompt is very long, and the 128k window ensures there is room for it</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>RAG injects retrieved passages as context — a larger window lets you inject more evidence without hitting the limit and truncating the AI's input</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+      </div>
+
+      <div class="callout callout-accent" style="margin-top: 2rem">
+        <div class="callout-icon">🎓</div>
+        <div class="callout-content">
+          <strong class="callout-title">You now understand your RAG system end-to-end</strong>
+          <p>YouTube scraping → parent-child chunking → vector + BM25 hybrid search → RRF fusion → Cohere reranking → Moonshot synthesis. You can now describe this architecture to any engineer, debug it when something breaks, and make informed decisions about how to extend it.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,227 @@
+<section class="module" id="module-6">
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 6 · Deep Dive</span>
+      <h1 class="module-title">chunking.py — Every Line Explained</h1>
+      <p class="module-subtitle">103 lines. Two functions. The entire text-slicing engine that makes your knowledge base searchable.</p>
+    </div>
+
+    <div class="screen">
+      <h2>Function 1: <code>chunk_text()</code> — Lines 1–42</h2>
+      <p>This is the low-level slicer. It takes a long string and cuts it into overlapping pieces of a fixed character size. Every other function in the codebase calls this one.</p>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · chunking.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">import</span> uuid</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">chunk_text</span>(text, chunk_size, overlap):</span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line">  <span class="code-string">Simple character-based chunker.</span></span>
+<span class="code-line">  <span class="code-string">Args:</span></span>
+<span class="code-line">  <span class="code-string">    text (str): Input text.</span></span>
+<span class="code-line">  <span class="code-string">    chunk_size (int): Size in characters.</span></span>
+<span class="code-line">  <span class="code-string">    overlap (int): Overlap in characters.</span></span>
+<span class="code-line">  <span class="code-string">Returns:</span></span>
+<span class="code-line">  <span class="code-string">    list of dicts: [{'text': str, ...}]</span></span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line">  <span class="code-keyword">if not</span> text:</span>
+<span class="code-line">    <span class="code-keyword">return</span> []</span>
+<span class="code-line"></span>
+<span class="code-line">  chunks = []</span>
+<span class="code-line">  start = <span class="code-number">0</span></span>
+<span class="code-line">  text_len = <span class="code-function">len</span>(text)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">while</span> start &lt; text_len:</span>
+<span class="code-line">    end = <span class="code-function">min</span>(start + chunk_size, text_len)</span>
+<span class="code-line">    chunk_text = text[start:end]</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> end &lt; text_len:</span>
+<span class="code-line">      last_space = chunk_text.<span class="code-function">rfind</span>(<span class="code-string">' '</span>)</span>
+<span class="code-line">      <span class="code-keyword">if</span> last_space != -<span class="code-number">1</span> <span class="code-keyword">and</span> last_space &gt; chunk_size * <span class="code-number">0.5</span>:</span>
+<span class="code-line">        end = start + last_space + <span class="code-number">1</span></span>
+<span class="code-line">        chunk_text = text[start:end]</span>
+<span class="code-line"></span>
+<span class="code-line">    chunks.<span class="code-function">append</span>({</span>
+<span class="code-line">      <span class="code-string">'text'</span>: chunk_text,</span>
+<span class="code-line">      <span class="code-string">'start_char'</span>: start,</span>
+<span class="code-line">      <span class="code-string">'end_char'</span>: end</span>
+<span class="code-line">    })</span>
+<span class="code-line"></span>
+<span class="code-line">    start += (chunk_size - overlap)</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">return</span> chunks</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Import the <span class="term" data-definition="uuid (Universally Unique Identifier) generates random IDs like '3f2a8b1c-...'. Used to give each chunk its own serial number that will never collide with another chunk's ID, even across millions of records.">uuid</span> library — used later to give each chunk a unique ID.</p>
+            <p class="tl">↵ blank line for readability</p>
+            <p class="tl">Define the function. It takes the full text, how big each slice should be (in characters), and how much consecutive slices should overlap.</p>
+            <p class="tl">↳ Start of the docstring (documentation comment).</p>
+            <p class="tl">↳ Describes what this function does in plain terms.</p>
+            <p class="tl">↳ Documents the first parameter: the raw text to slice.</p>
+            <p class="tl">↳ Documents the second parameter: maximum characters per chunk.</p>
+            <p class="tl">↳ Documents the third parameter: how many characters the next chunk re-reads from the end of the previous one.</p>
+            <p class="tl">↳ Documents what this function returns.</p>
+            <p class="tl">↳ Specifies the return type: a list of dictionaries.</p>
+            <p class="tl">↳ End of docstring.</p>
+            <p class="tl">Guard clause: if the text is empty or None, immediately return an empty list. Prevents crashes on blank transcripts.</p>
+            <p class="tl">Return early with nothing — no point running the loop on empty input.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Create an empty list that will collect all the chunk dictionaries we produce.</p>
+            <p class="tl">Set a cursor at character position 0 — we'll move this forward as we slice.</p>
+            <p class="tl">Pre-calculate the total length of the text so we don't call len() on every loop iteration.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Keep looping as long as the cursor hasn't passed the end of the text.</p>
+            <p class="tl">Calculate the end position: either start + chunk_size, or the actual end of text if we're near the finish. min() prevents going past the end.</p>
+            <p class="tl">Slice out the candidate chunk text using Python's string slicing: text[start:end].</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Only do the word-boundary check if we're NOT at the very end of the text (no point adjusting the final fragment).</p>
+            <p class="tl">Search backwards from the end of the chunk for the last space character. rfind returns -1 if not found.</p>
+            <p class="tl">If a space exists AND it's in the second half of the chunk (not near the beginning), it's safe to snap to that word boundary.</p>
+            <p class="tl">Adjust the end position to just after the space — so we don't cut a word in half.</p>
+            <p class="tl">Re-slice the text with the adjusted end position.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add a dictionary to our results list describing this chunk.</p>
+            <p class="tl">Store the actual text content of this slice.</p>
+            <p class="tl">Store where in the original document this chunk starts (character index).</p>
+            <p class="tl">Store where it ends. These positions can later be mapped to timestamps.</p>
+            <p class="tl">Close the dictionary and the append call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Advance the cursor for the next iteration. Crucially: we move forward by (chunk_size - overlap), NOT by chunk_size. This makes the next chunk start overlap characters before the end of the current one — ensuring no content falls through the cracks between slices.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Return the complete list of chunk dictionaries once the loop finishes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Function 2: <code>create_parent_child_chunks()</code> — Lines 44–103</h2>
+      <p>The orchestrator. Calls <code>chunk_text()</code> twice per transcript — once to make large parent chunks, then again on each parent to make small child chunks. Every child knows its parent's ID.</p>
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE · chunking.py</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">create_parent_child_chunks</span>(video_id, full_text):</span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line">  <span class="code-string">Generates Parent and Child chunks for a video.</span></span>
+<span class="code-line">  <span class="code-string">Strategy:</span></span>
+<span class="code-line">  <span class="code-string">  1. Create Parent Chunks (Large context).</span></span>
+<span class="code-line">  <span class="code-string">  2. Chunk each Parent into Children.</span></span>
+<span class="code-line">  <span class="code-string">  Sizes:</span></span>
+<span class="code-line">  <span class="code-string">  - Parent: ~3000 chars (~750 tokens)</span></span>
+<span class="code-line">  <span class="code-string">  - Child: ~1000 chars (~250 tokens)</span></span>
+<span class="code-line">  <span class="code-string">  - Overlap: 200 chars</span></span>
+<span class="code-line">  <span class="code-string">"""</span></span>
+<span class="code-line"></span>
+<span class="code-line">  parent_chunks_data = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">    full_text,</span>
+<span class="code-line">    chunk_size=<span class="code-number">3000</span>,</span>
+<span class="code-line">    overlap=<span class="code-number">200</span></span>
+<span class="code-line">  )</span>
+<span class="code-line"></span>
+<span class="code-line">  all_chunks = []</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">for</span> p_idx, p_data <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(parent_chunks_data):</span>
+<span class="code-line">    parent_id = str(uuid.<span class="code-function">uuid4</span>())</span>
+<span class="code-line"></span>
+<span class="code-line">    all_chunks.<span class="code-function">append</span>({</span>
+<span class="code-line">      <span class="code-string">'id'</span>: parent_id,</span>
+<span class="code-line">      <span class="code-string">'video_id'</span>: video_id,</span>
+<span class="code-line">      <span class="code-string">'text'</span>: p_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">      <span class="code-string">'type'</span>: <span class="code-string">'parent'</span>,</span>
+<span class="code-line">      <span class="code-string">'parent_id'</span>: <span class="code-keyword">None</span>,</span>
+<span class="code-line">      <span class="code-string">'chunk_index'</span>: p_idx,</span>
+<span class="code-line">      <span class="code-string">'start_char'</span>: p_data[<span class="code-string">'start_char'</span>],</span>
+<span class="code-line">      <span class="code-string">'end_char'</span>: p_data[<span class="code-string">'end_char'</span>]</span>
+<span class="code-line">    })</span>
+<span class="code-line"></span>
+<span class="code-line">    child_chunks_data = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">      p_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">      chunk_size=<span class="code-number">1000</span>,</span>
+<span class="code-line">      overlap=<span class="code-number">100</span></span>
+<span class="code-line">    )</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">for</span> c_idx, c_data <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(child_chunks_data):</span>
+<span class="code-line">      child_id = str(uuid.<span class="code-function">uuid4</span>())</span>
+<span class="code-line">      all_chunks.<span class="code-function">append</span>({</span>
+<span class="code-line">        <span class="code-string">'id'</span>: child_id,</span>
+<span class="code-line">        <span class="code-string">'video_id'</span>: video_id,</span>
+<span class="code-line">        <span class="code-string">'text'</span>: c_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">        <span class="code-string">'type'</span>: <span class="code-string">'child'</span>,</span>
+<span class="code-line">        <span class="code-string">'parent_id'</span>: parent_id,</span>
+<span class="code-line">        <span class="code-string">'chunk_index'</span>: c_idx,</span>
+<span class="code-line">        <span class="code-string">'start_char'</span>: p_data[<span class="code-string">'start_char'</span>] + c_data[<span class="code-string">'start_char'</span>],</span>
+<span class="code-line">        <span class="code-string">'end_char'</span>: p_data[<span class="code-string">'start_char'</span>] + c_data[<span class="code-string">'end_char'</span>]</span>
+<span class="code-line">      })</span>
+<span class="code-line"></span>
+<span class="code-line">  <span class="code-keyword">return</span> all_chunks</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define the main function. Takes: the YouTube video's ID (a string like "dQw4w9WgXcQ") and the full transcript text.</p>
+            <p class="tl">↳ Docstring begins.</p>
+            <p class="tl">↳ One-line description of purpose.</p>
+            <p class="tl">↳ Lists the two-step strategy.</p>
+            <p class="tl">↳ Step 1: make big parent slices for context.</p>
+            <p class="tl">↳ Step 2: slice each parent into small children for searching.</p>
+            <p class="tl">↳ Size reference section.</p>
+            <p class="tl">↳ Parent = 3,000 characters ≈ 750 words ≈ 750 tokens. Rich context for the AI.</p>
+            <p class="tl">↳ Child = 1,000 characters ≈ 250 words. Fits the MiniLM embedding model's 256-token limit.</p>
+            <p class="tl">↳ 200-character overlap between consecutive parents so no content falls in the gap.</p>
+            <p class="tl">↳ End docstring.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">First pass: call chunk_text() on the full transcript...</p>
+            <p class="tl">...passing in the whole transcript text.</p>
+            <p class="tl">...asking for 3,000-character slices...</p>
+            <p class="tl">...with 200 characters of overlap between consecutive parents.</p>
+            <p class="tl">Result: a list of parent chunk dictionaries. Store it in parent_chunks_data.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Create the master output list. Both parent and child chunks will go into this same list.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Loop through each parent chunk. enumerate() gives us both the index (p_idx = 0, 1, 2...) and the data dict (p_data).</p>
+            <p class="tl">Generate a random unique ID for this parent. uuid4() produces something like "3e4a8b1c-9f2d-4e7a-b8c3-1a2b3c4d5e6f". str() converts it to a plain string.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Add the parent chunk record to our master list.</p>
+            <p class="tl">The parent's unique identifier — stored so children can reference it.</p>
+            <p class="tl">Which YouTube video this chunk came from.</p>
+            <p class="tl">The actual text content of this 3,000-character slice.</p>
+            <p class="tl">Label this record as a "parent" type — distinguishes it from child chunks in database queries.</p>
+            <p class="tl">Parents have no parent themselves. None = null = "this is a root node."</p>
+            <p class="tl">Which parent chunk this is: 0 = first, 1 = second, etc. Preserves ordering.</p>
+            <p class="tl">Where in the original transcript this parent chunk starts (character position).</p>
+            <p class="tl">Where it ends. Useful for mapping back to a timestamp in the video.</p>
+            <p class="tl">Close the dictionary and the append() call.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Second pass: now slice THIS PARENT'S text into smaller children.</p>
+            <p class="tl">Pass in only this parent's text (not the full transcript).</p>
+            <p class="tl">Ask for 1,000-character slices — small enough for the embedding model.</p>
+            <p class="tl">100-character overlap within each parent so sentence fragments aren't lost.</p>
+            <p class="tl">Result: a list of child chunk dicts for this parent only.</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">Inner loop: for each child chunk within this parent.</p>
+            <p class="tl">Generate a unique ID for this child — same pattern as parent.</p>
+            <p class="tl">Add this child to the same master list as its parent.</p>
+            <p class="tl">The child's own unique identifier.</p>
+            <p class="tl">Same video ID as the parent — child inherits this.</p>
+            <p class="tl">The actual text content of this small 1,000-character slice.</p>
+            <p class="tl">Label as "child" — retrieval.py queries for type='child' specifically when building the BM25 index.</p>
+            <p class="tl">Foreign key: the parent's ID. This is the link that lets us say "when you find this child relevant, return its parent for context."</p>
+            <p class="tl">Position of this child within its parent's sequence: 0, 1, 2...</p>
+            <p class="tl">Absolute position in original transcript = parent's start + child's local start. Translates local coordinates back to global coordinates.</p>
+            <p class="tl">Same offset math for the end position — child's local end + parent's absolute start = child's absolute end in the original transcript.</p>
+            <p class="tl">Close the child dictionary and the inner append().</p>
+            <p class="tl">↵ blank line</p>
+            <p class="tl">After both loops finish, return the complete master list containing ALL parents and ALL children interleaved. Typically 3–4 children per parent.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

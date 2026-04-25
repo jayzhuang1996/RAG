@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 780" width="960" height="780">
+  <style>text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }</style>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#5a5a5a"/></marker>
+    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#00000012"/></filter>
+  </defs>
+  <rect width="960" height="780" fill="#f8f6f3"/>
+  <text x="480" y="38" text-anchor="middle" fill="#1a1a1a" font-size="20" font-weight="700">Podcast GraphRAG — Full System Architecture</text>
+  <text x="18" y="108" fill="#6a6a6a" font-size="12" font-weight="600">INGEST</text>
+  <text x="18" y="248" fill="#6a6a6a" font-size="12" font-weight="600">STORE</text>
+  <text x="18" y="400" fill="#6a6a6a" font-size="12" font-weight="600">RETRIEVE</text>
+  <text x="18" y="560" fill="#6a6a6a" font-size="12" font-weight="600">SYNTH</text>
+  <text x="18" y="710" fill="#6a6a6a" font-size="12" font-weight="600">OUTPUT</text>
+  <rect x="60" y="60" width="150" height="70" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="135" y="90" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">scraper.py</text>
+  <text x="135" y="108" text-anchor="middle" fill="#5a5a5a" font-size="11">YouTube channel</text>
+  <text x="135" y="122" text-anchor="middle" fill="#5a5a5a" font-size="11">scrapetube</text>
+  <rect x="250" y="60" width="160" height="70" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="330" y="90" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">transcripts.py</text>
+  <text x="330" y="108" text-anchor="middle" fill="#5a5a5a" font-size="11">YouTubeTranscriptApi</text>
+  <text x="330" y="122" text-anchor="middle" fill="#5a5a5a" font-size="11">full_text string</text>
+  <rect x="450" y="60" width="160" height="70" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="530" y="90" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">metadata.py</text>
+  <text x="530" y="108" text-anchor="middle" fill="#5a5a5a" font-size="11">Moonshot AI</text>
+  <text x="530" y="122" text-anchor="middle" fill="#5a5a5a" font-size="11">entities + triples</text>
+  <rect x="650" y="60" width="160" height="70" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="730" y="90" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">chunking.py</text>
+  <text x="730" y="108" text-anchor="middle" fill="#5a5a5a" font-size="11">Parent (3000c)</text>
+  <text x="730" y="122" text-anchor="middle" fill="#5a5a5a" font-size="11">Child (1000c, 100 ovlp)</text>
+  <line x1="210" y1="95" x2="248" y2="95" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="410" y1="95" x2="448" y2="95" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="610" y1="95" x2="648" y2="95" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="60" y="190" width="230" height="80" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="175" y="220" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">SQLite (podcasts.db)</text>
+  <text x="175" y="238" text-anchor="middle" fill="#5a5a5a" font-size="11">videos | transcripts | chunks</text>
+  <text x="175" y="254" text-anchor="middle" fill="#5a5a5a" font-size="11">metadata | relationships</text>
+  <rect x="330" y="190" width="200" height="80" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="430" y="220" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">ChromaDB</text>
+  <text x="430" y="238" text-anchor="middle" fill="#5a5a5a" font-size="11">all-MiniLM-L6-v2</text>
+  <text x="430" y="254" text-anchor="middle" fill="#5a5a5a" font-size="11">384-dim child vectors</text>
+  <rect x="570" y="190" width="250" height="80" rx="12" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="695" y="220" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">Supabase (Cloud)</text>
+  <text x="695" y="238" text-anchor="middle" fill="#5a5a5a" font-size="11">viking_relationships</text>
+  <text x="695" y="254" text-anchor="middle" fill="#5a5a5a" font-size="11">viking_communities (30)</text>
+  <line x1="135" y1="130" x2="135" y2="188" stroke="#5a5a5a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <line x1="730" y1="130" x2="440" y2="188" stroke="#5a5a5a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <line x1="530" y1="130" x2="650" y2="188" stroke="#5a5a5a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <rect x="55" y="320" width="840" height="120" rx="14" fill="none" stroke="#4a4a4a" stroke-width="1.5" stroke-dasharray="8,4"/>
+  <text x="90" y="340" fill="#4a4a4a" font-size="12" font-weight="600">retrieval.py — HybridRetriever</text>
+  <rect x="80" y="348" width="150" height="72" rx="10" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="155" y="372" text-anchor="middle" fill="#1a1a1a" font-size="13" font-weight="600">BM25 Search</text>
+  <text x="155" y="388" text-anchor="middle" fill="#5a5a5a" font-size="11">Keyword ranking</text>
+  <text x="155" y="404" text-anchor="middle" fill="#5a5a5a" font-size="11">BM25Okapi</text>
+  <rect x="268" y="348" width="150" height="72" rx="10" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="343" y="372" text-anchor="middle" fill="#1a1a1a" font-size="13" font-weight="600">Vector Search</text>
+  <text x="343" y="388" text-anchor="middle" fill="#5a5a5a" font-size="11">Semantic (ChromaDB)</text>
+  <text x="343" y="404" text-anchor="middle" fill="#5a5a5a" font-size="11">1/(1+L2) score</text>
+  <rect x="456" y="348" width="150" height="72" rx="10" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="531" y="372" text-anchor="middle" fill="#1a1a1a" font-size="13" font-weight="600">RRF Fusion</text>
+  <text x="531" y="388" text-anchor="middle" fill="#5a5a5a" font-size="11">Rank merge k=60</text>
+  <text x="531" y="404" text-anchor="middle" fill="#5a5a5a" font-size="11">1/(k+rank+1)</text>
+  <rect x="644" y="348" width="168" height="72" rx="10" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="728" y="372" text-anchor="middle" fill="#1a1a1a" font-size="13" font-weight="600">Cohere Rerank</text>
+  <text x="728" y="388" text-anchor="middle" fill="#5a5a5a" font-size="11">Cross-encoder</text>
+  <text x="728" y="404" text-anchor="middle" fill="#5a5a5a" font-size="11">rerank-v3.5</text>
+  <line x1="230" y1="384" x2="266" y2="384" stroke="#5a5a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="418" y1="384" x2="454" y2="384" stroke="#5a5a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="606" y1="384" x2="642" y2="384" stroke="#5a5a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="175" y1="270" x2="155" y2="346" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="430" y1="270" x2="343" y2="346" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="55" y="480" width="840" height="130" rx="14" fill="none" stroke="#4a4a4a" stroke-width="1.5" stroke-dasharray="8,4"/>
+  <text x="90" y="500" fill="#4a4a4a" font-size="12" font-weight="600">agent.py — LangGraph Multi-Agent Synthesis</text>
+  <rect x="80" y="508" width="185" height="85" rx="10" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="172" y="533" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="700">Researcher</text>
+  <text x="172" y="550" text-anchor="middle" fill="#5a5a5a" font-size="11">Fact extraction</text>
+  <text x="172" y="566" text-anchor="middle" fill="#5a5a5a" font-size="11">transcripts + graph</text>
+  <text x="172" y="582" text-anchor="middle" fill="#5a5a5a" font-size="11">temp=0.1</text>
+  <rect x="303" y="508" width="185" height="85" rx="10" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="395" y="533" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="700">Analyst</text>
+  <text x="395" y="550" text-anchor="middle" fill="#5a5a5a" font-size="11">So What? insights</text>
+  <text x="395" y="566" text-anchor="middle" fill="#5a5a5a" font-size="11">trends + gaps</text>
+  <text x="395" y="582" text-anchor="middle" fill="#5a5a5a" font-size="11">temp=0.4</text>
+  <rect x="526" y="508" width="185" height="85" rx="10" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="618" y="533" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="700">Writer</text>
+  <text x="618" y="550" text-anchor="middle" fill="#5a5a5a" font-size="11">Premium newsletter</text>
+  <text x="618" y="566" text-anchor="middle" fill="#5a5a5a" font-size="11">[Source N] citations</text>
+  <text x="618" y="582" text-anchor="middle" fill="#5a5a5a" font-size="11">temp=0.5</text>
+  <rect x="749" y="508" width="130" height="85" rx="10" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2" filter="url(#sh)"/>
+  <text x="814" y="528" text-anchor="middle" fill="#1a1a1a" font-size="12" font-weight="700">communities.py</text>
+  <text x="814" y="544" text-anchor="middle" fill="#5a5a5a" font-size="11">networkx</text>
+  <text x="814" y="560" text-anchor="middle" fill="#5a5a5a" font-size="11">Greedy Modularity</text>
+  <text x="814" y="576" text-anchor="middle" fill="#5a5a5a" font-size="11">30 communities</text>
+  <text x="814" y="587" text-anchor="middle" fill="#5a5a5a" font-size="10">→ Supabase</text>
+  <line x1="265" y1="550" x2="301" y2="550" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="488" y1="550" x2="524" y2="550" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="480" y1="440" x2="172" y2="506" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="100" y="652" width="180" height="68" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="190" y="678" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">api.py (FastAPI)</text>
+  <text x="190" y="695" text-anchor="middle" fill="#5a5a5a" font-size="11">POST /query</text>
+  <text x="190" y="710" text-anchor="middle" fill="#5a5a5a" font-size="11">streaming SSE</text>
+  <rect x="330" y="652" width="180" height="68" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="420" y="678" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">frontend/</text>
+  <text x="420" y="695" text-anchor="middle" fill="#5a5a5a" font-size="11">index.html</text>
+  <text x="420" y="710" text-anchor="middle" fill="#5a5a5a" font-size="11">graph.html (D3.js)</text>
+  <rect x="560" y="652" width="180" height="68" rx="12" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="650" y="678" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">main.py (CLI)</text>
+  <text x="650" y="695" text-anchor="middle" fill="#5a5a5a" font-size="11">ingest | query</text>
+  <text x="650" y="710" text-anchor="middle" fill="#5a5a5a" font-size="11">communities</text>
+  <line x1="618" y1="593" x2="420" y2="650" stroke="#5a5a5a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="340" y1="650" x2="280" y2="650" stroke="#5a5a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="618" y1="593" x2="650" y2="650" stroke="#5a5a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="758" y="652" width="168" height="80" rx="8" fill="#ffffff" stroke="#4a4a4a" stroke-width="1.5"/>
+  <text x="772" y="668" fill="#1a1a1a" font-size="12" font-weight="600">Legend</text>
+  <rect x="772" y="676" width="11" height="11" rx="3" fill="#a8c5e6" stroke="#4a4a4a" stroke-width="1.5"/>
+  <text x="789" y="686" fill="#5a5a5a" font-size="11">Input / Output</text>
+  <rect x="772" y="694" width="11" height="11" rx="3" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="1.5"/>
+  <text x="789" y="704" fill="#5a5a5a" font-size="11">Agent / LLM</text>
+  <rect x="772" y="712" width="11" height="11" rx="3" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="1.5"/>
+  <text x="789" y="722" fill="#5a5a5a" font-size="11">Storage / DB</text>
+  <rect x="772" y="728" width="11" height="11" rx="3" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="1.5"/>
+  <text x="789" y="738" fill="#5a5a5a" font-size="11">Processing</text>
+</svg>

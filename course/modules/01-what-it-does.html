@@ -1,0 +1,130 @@
+<section class="module" id="module-1">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 1</span>
+      <h1 class="module-title">What Your AI Knowledge Base Actually Does</h1>
+      <p class="module-subtitle">You built something powerful — here's what's happening under the hood every time you ask it a question.</p>
+    </div>
+
+    <div class="screen">
+      <h2>The Problem It Solves</h2>
+      <p>Imagine you've watched 200 hours of podcast content — <em>Lex Fridman, My First Million, All-In</em> — and somewhere in there someone said something brilliant about AI safety, or pricing strategy, or fundraising. But you have no idea which episode, which hour, or which speaker.</p>
+      <p>You could search YouTube. But YouTube search only matches video titles and descriptions — not what was <em>said</em>. You'd have to scrub through hours of tape yourself.</p>
+      <p>Your Podcast RAG app solves this. You ask it: <em>"What did Sam Altman say about AI safety?"</em> — and it reads <strong>the actual transcript text</strong> of every episode you've ingested, finds the most relevant passages, and gives you a synthesized answer with sources.</p>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">What RAG means</strong>
+          <p><span class="term" data-definition="RAG stands for Retrieval-Augmented Generation. Instead of asking an AI to answer from its training data alone, you first retrieve specific documents that are relevant to the question, then feed those documents to the AI as context. The AI generates its answer based on your real data, not guesses.">RAG</span> = Retrieval-Augmented Generation. You're not asking a generic AI to guess. You're giving it the actual podcast transcripts as evidence, and it answers from there.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Journey of a Question</h2>
+      <p>When you type <code>python main.py query "What did Sam Altman say about AI safety?"</code>, here is the complete sequence of events:</p>
+
+      <div class="flow-animation" data-steps='[
+        {"highlight":"flow-actor-1","label":"You type your question into the terminal"},
+        {"highlight":"flow-actor-1","label":"main.py receives it and routes it to query.py","packet":true,"from":"actor-1","to":"actor-2"},
+        {"highlight":"flow-actor-2","label":"query.py asks the HybridRetriever to find relevant passages","packet":true,"from":"actor-2","to":"actor-3"},
+        {"highlight":"flow-actor-3","label":"HybridRetriever searches ChromaDB (vector) and BM25 (keyword) simultaneously"},
+        {"highlight":"flow-actor-3","label":"Results are fused and reranked by Cohere AI","packet":true,"from":"actor-3","to":"actor-4"},
+        {"highlight":"flow-actor-4","label":"Top 5 transcript passages are returned to query.py","packet":true,"from":"actor-4","to":"actor-2"},
+        {"highlight":"flow-actor-2","label":"query.py builds a prompt: question + passages","packet":true,"from":"actor-2","to":"actor-5"},
+        {"highlight":"flow-actor-5","label":"Moonshot AI reads the context and writes your answer","packet":true,"from":"actor-5","to":"actor-1"},
+        {"highlight":"flow-actor-1","label":"You see the answer in your terminal, with sources cited"}
+      ]'>
+        <div class="flow-actors">
+          <div class="flow-actor" id="flow-actor-1">
+            <div class="flow-actor-icon">👤</div>
+            <span>You</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-2">
+            <div class="flow-actor-icon">🔀</div>
+            <span>query.py</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-3">
+            <div class="flow-actor-icon">🔍</div>
+            <span>Retriever</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-4">
+            <div class="flow-actor-icon">🏆</div>
+            <span>Cohere</span>
+          </div>
+          <div class="flow-actor" id="flow-actor-5">
+            <div class="flow-actor-icon">🤖</div>
+            <span>Moonshot AI</span>
+          </div>
+        </div>
+        <div class="flow-packet" id="flow-packet"></div>
+        <div class="flow-step-label" id="flow-label">Click "Next Step" to trace your question through the system</div>
+        <div class="flow-controls">
+          <button class="btn flow-next-btn">Next Step</button>
+          <button class="btn flow-reset-btn">Restart</button>
+          <span class="flow-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Two Modes: Ingest and Query</h2>
+      <p>The app has two completely separate jobs — like a library system that has both a <em>cataloguing department</em> and a <em>reference desk</em>. They never run at the same time.</p>
+
+      <div class="pattern-cards">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon" style="background: var(--color-actor-1)">📥</div>
+          <h4 class="pattern-title">Ingest Mode</h4>
+          <p class="pattern-desc">Run once (or weekly). Scrapes YouTube channels, downloads transcripts, chops text into searchable pieces, and stores them in the database. This is the cataloguing department — slow, thorough, runs in the background.</p>
+          <code>python main.py ingest --limit 50</code>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon" style="background: var(--color-actor-2)">❓</div>
+          <h4 class="pattern-title">Query Mode</h4>
+          <p class="pattern-desc">Run anytime. Takes your question, searches the already-processed database, and returns an answer in seconds. This is the reference desk — fast, because all the hard work was done upfront.</p>
+          <code>python main.py query "your question"</code>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">🏗️</div>
+        <div class="callout-content">
+          <strong class="callout-title">Why separate these?</strong>
+          <p>Processing 200 hours of video takes 30 minutes and costs money (transcription API calls). Answering a question takes 3 seconds. Keeping them separate means you pay the big cost once, then query for free as many times as you want.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>Quick Check</h2>
+      <div class="quiz-container" id="quiz-module1">
+        <div class="quiz-question-block"
+             data-correct="option-b"
+             data-explanation-right="Exactly — RAG retrieves your actual transcript text and feeds it to the AI as evidence. The AI answers from that evidence, not from guesses."
+             data-explanation-wrong="Not quite. The AI doesn't answer from its own training. It reads the specific passages your retrieval system found, then answers from those.">
+          <h3 class="quiz-question">When you ask your RAG app a question, where does the answer come from?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>The AI's training data — it already knows about these podcasts</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Specific transcript passages retrieved from your local database, fed to the AI as context</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>A live YouTube search at query time</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>

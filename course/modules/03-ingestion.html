@@ -1,0 +1,142 @@
+<section class="module" id="module-3">
+
+  <div class="module-content">
+    <div class="module-header">
+      <span class="module-label">Module 3</span>
+      <h1 class="module-title">How Podcasts Become Searchable</h1>
+      <p class="module-subtitle">The ingestion pipeline — from a YouTube URL to 2,847 searchable pieces of text.</p>
+    </div>
+
+    <div class="screen">
+      <h2>The Ingestion Pipeline</h2>
+      <p>Before you can query anything, the system needs to process raw video content into a structured, searchable form. Think of it like scanning a physical library into a digital card catalogue — it's slow to do once, but makes every future search instant.</p>
+      <p>The pipeline has four stages:</p>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          <p><strong>Scrape</strong> — Get YouTube video IDs from channels</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          <p><strong>Transcribe</strong> — Download spoken words as text</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          <p><strong>Chunk</strong> — Slice transcripts into 250-token pieces</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-step-num">4</div>
+          <p><strong>Embed</strong> — Convert text to number vectors and store</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Clever Trick: Parent-Child Chunks</h2>
+      <p>Here is the most interesting engineering decision in the whole codebase. When you slice a transcript, you don't just create one set of chunks — you create <em>two</em>:</p>
+
+      <div class="pattern-cards">
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+          <div class="pattern-icon" style="background: var(--color-actor-1)">👶</div>
+          <h4 class="pattern-title">Child Chunks (Small)</h4>
+          <p class="pattern-desc">~250 tokens (~1,000 characters). These are what get embedded into vectors and searched. Small = better semantic precision, fits inside the embedding model's limit.</p>
+        </div>
+        <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+          <div class="pattern-icon" style="background: var(--color-actor-2)">👨</div>
+          <h4 class="pattern-title">Parent Chunks (Large)</h4>
+          <p class="pattern-desc">~750 tokens (~3,000 characters). These are what get returned to the AI as context. Large = more surrounding context, so the AI has enough material to give a complete answer.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-accent">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong class="callout-title">The "search small, return big" principle</strong>
+          <p>You search with the small child chunk (precise match), but you return the large parent chunk (full context). It's like finding a specific page in a book using the index, then reading the whole chapter around it — not just the one sentence.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>The Code Behind Chunking</h2>
+      <p>Here is the exact function from <code>chunking.py</code> that creates parent and child chunks:</p>
+
+      <div class="translation-block animate-in">
+        <div class="translation-code">
+          <span class="translation-label">CODE</span>
+          <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">create_parent_child_chunks</span>(video_id, full_text):</span>
+<span class="code-line">  parent_chunks = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">    full_text,</span>
+<span class="code-line">    chunk_size=<span class="code-number">3000</span>,</span>
+<span class="code-line">    overlap=<span class="code-number">200</span></span>
+<span class="code-line">  )</span>
+<span class="code-line">  <span class="code-keyword">for</span> p_data <span class="code-keyword">in</span> parent_chunks:</span>
+<span class="code-line">    parent_id = str(uuid.uuid4())</span>
+<span class="code-line">    child_chunks = <span class="code-function">chunk_text</span>(</span>
+<span class="code-line">      p_data[<span class="code-string">'text'</span>],</span>
+<span class="code-line">      chunk_size=<span class="code-number">1000</span>,</span>
+<span class="code-line">      overlap=<span class="code-number">100</span></span>
+<span class="code-line">    )</span>
+          </code></pre>
+        </div>
+        <div class="translation-english">
+          <span class="translation-label">PLAIN ENGLISH</span>
+          <div class="translation-lines">
+            <p class="tl">Define a function that takes a full transcript and slices it up.</p>
+            <p class="tl">First pass: create big "parent" slices — each about 3,000 characters (750 words).</p>
+            <p class="tl">The 200-character overlap means consecutive chunks share some text at their edges — so a sentence split between two chunks isn't lost.</p>
+            <p class="tl">For each parent slice, now go through it again...</p>
+            <p class="tl">Give this parent a unique ID (like a random serial number).</p>
+            <p class="tl">Second pass: chop each parent into smaller "child" slices — 1,000 characters each.</p>
+            <p class="tl">Each child inherits its parent's ID, creating the family tree relationship.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <h2>What is an Embedding?</h2>
+      <p>After chunking, every piece of text needs to be converted into a "vector" — a list of numbers — before it can be stored in ChromaDB. This is the job of <code>embeddings.py</code> using a model called <span class="term" data-definition="MiniLM is a small, fast AI model trained specifically to convert text into vectors. It takes a sentence as input and outputs 384 numbers. Two sentences that mean similar things will have similar sets of numbers — even if the words are completely different.">MiniLM</span>.</p>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">🔢</div>
+        <div class="callout-content">
+          <strong class="callout-title">Vectors in plain English</strong>
+          <p>Imagine placing every sentence in a 384-dimensional space (like a map, but with 384 axes instead of 2). Two sentences that mean the same thing end up close together on this map. When you ask a question, the system converts your question into a location, then finds the transcript chunks sitting closest to it. That's <span class="term" data-definition="Semantic search finds results based on meaning rather than exact word matches. It understands that &apos;AI safety&apos; and &apos;making sure AI doesn&apos;t hurt people&apos; are related, even though they share no words.">semantic search</span>.</p>
+        </div>
+      </div>
+
+      <div class="quiz-container" id="quiz-module3">
+        <div class="quiz-question-block"
+             data-correct="option-c"
+             data-explanation-right="Exactly — child chunks are small for precise semantic matching, but when you return results you fetch the parent (which contains more surrounding context) so the AI has enough to work with."
+             data-explanation-wrong="Not quite. The goal is to search precisely (small chunks) but return rich context (big chunks). Think: search the index, read the chapter.">
+          <h3 class="quiz-question">Why does the app create both parent and child chunks instead of just one size?</h3>
+          <div class="quiz-options">
+            <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>To save storage space — smaller chunks compress better</span>
+            </button>
+            <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Because the embedding model requires exactly 1,000 character inputs</span>
+            </button>
+            <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+              <div class="quiz-option-radio"></div>
+              <span>Small chunks are more precise for searching; large chunks give the AI more context when answering</span>
+            </button>
+          </div>
+          <div class="quiz-feedback"></div>
+        </div>
+        <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answer</button>
+        <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+      </div>
+    </div>
+
+  </div>
+</section>
