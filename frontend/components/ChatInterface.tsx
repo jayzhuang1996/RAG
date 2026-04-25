@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Send, Loader2, Mic, Zap, BookOpen } from 'lucide-react';
-import GraphPanel from './GraphPanel';
+import MermaidVisualizer from './MermaidVisualizer';
 
 interface Message {
   role: 'user' | 'assistant' | 'error';
@@ -235,10 +235,22 @@ export default function ChatInterface() {
                           fontSize: '11px',
                           fontWeight: 600,
                           cursor: 'pointer',
+                          marginBottom: activeGraph === msg ? '12px' : '0'
                         }}
                       >
-                        {activeGraph === msg ? 'Hide Structural Graph' : 'View Structural Graph'}
+                        {activeGraph === msg ? 'Hide Structural Map' : 'View Structural Map'}
                       </button>
+                      
+                      {activeGraph === msg && (
+                        <div style={{ 
+                          height: '350px', 
+                          border: '1px solid var(--border)', 
+                          borderRadius: '12px', 
+                          overflow: 'hidden' 
+                        }}>
+                          <MermaidVisualizer triples={msg.graph_data} />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -316,15 +328,6 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      {/* Graph Panel (conditionally shown) */}
-      {activeGraph && activeGraph.graph_data && (
-        <div style={{ width: '350px', flexShrink: 0 }}>
-          <GraphPanel
-            triples={activeGraph.graph_data}
-            onClose={() => setActiveGraph(null)}
-          />
-        </div>
-      )}
     </div>
   );
 }

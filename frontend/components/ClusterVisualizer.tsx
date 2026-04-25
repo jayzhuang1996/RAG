@@ -23,6 +23,9 @@ const PALETTE = [
 const CustomizedContent = (props: any) => {
   const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
 
+  // Don't render text if the box is too small to be readable
+  const isLargeEnough = width > 80 && height > 40;
+  
   return (
     <g>
       <rect
@@ -33,18 +36,38 @@ const CustomizedContent = (props: any) => {
         style={{
           fill: depth < 2 ? colors[Math.floor((index / root.children.length) * 6)] : 'rgba(255,255,255,0)',
           stroke: '#FDF9F3',
-          strokeWidth: 2 / (depth + 1e-10),
-          strokeOpacity: 1,
+          strokeWidth: depth === 1 ? 2 : 1,
+          strokeOpacity: depth === 1 ? 1 : 0.4,
         }}
+        // Slight interaction
+        onMouseOver={(e: any) => e.target.style.opacity = 0.9}
+        onMouseOut={(e: any) => e.target.style.opacity = 1}
       />
-      {depth === 1 && width > 40 && height > 30 ? (
-        <text x={x + 8} y={y + 18} fill="#fff" fontSize={14} fontWeight={600} fontFamily="var(--font-display)">
-          {name}
-        </text>
+      {depth === 1 && isLargeEnough ? (
+        <>
+          <text 
+            x={x + 12} 
+            y={y + 24} 
+            fill="#ffffff" 
+            fontSize={14} 
+            fontWeight={600} 
+            fontFamily="var(--font-display)"
+            pointerEvents="none"
+          >
+            {name.length > 20 ? name.substring(0, 20) + '...' : name}
+          </text>
+        </>
       ) : null}
-      {depth === 2 && width > 30 && height > 20 ? (
-        <text x={x + 4} y={y + 12} fill="rgba(255,255,255,0.9)" fontSize={10} fontFamily="var(--font-mono)">
-          {name}
+      {depth === 2 && width > 40 && height > 24 ? (
+        <text 
+          x={x + 8} 
+          y={y + 16} 
+          fill="rgba(255,255,255,0.9)" 
+          fontSize={11} 
+          fontFamily="var(--font-mono)"
+          pointerEvents="none"
+        >
+          {name.length > 15 ? name.substring(0, 12) + '..' : name}
         </text>
       ) : null}
     </g>
@@ -53,14 +76,15 @@ const CustomizedContent = (props: any) => {
 
 export default function ClusterVisualizer({ communities, width, height = 500 }: Props) {
   const data = useMemo(() => {
-    const formattedData = communities.map((c, i) => {
+    // Only visualize the top 8 macro clusters to prevent visual clutter
+    const formattedData = communities.slice(0, 8).map((c, i) => {
       let entities: string[] = [];
       if (Array.isArray(c.nodes)) entities = c.nodes;
       else {
         try { entities = JSON.parse(c.nodes || '[]'); } catch { entities = []; }
       }
       
-      const children = entities.slice(0, 15).map(e => ({
+      const children = entities.slice(0, 8).map(e => ({
         name: e,
         size: 10 + Math.random() * 20 // Arbitrary size for visual variance
       }));
