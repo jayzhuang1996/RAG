@@ -39,24 +39,54 @@ def _build_context_block(context_results):
 
     for c in context_results:
         video_id = c['video_id']
+        parent_text = c['parent_text']
         
         if video_id not in video_title_map:
             title = video_id
+            timestamp = 0
+            
             if USE_SUPABASE:
-                res = supabase.table("viking_videos").select("title").eq("id", video_id).execute()
-                if res.data: title = res.data[0]['title']
+                v_res = supabase.table("viking_videos").select("title").eq("id", video_id).execute()
+                if v_res.data: title = v_res.data[0]['title']
+                
+                # Try to get timestamp from raw transcript
+                t_res = supabase.table("viking_transcripts").select("raw_json").eq("video_id", video_id).execute()
+                if t_res.data and t_res.data[0]['raw_json']:
+                    raw = t_res.data[0]['raw_json']
+                    # Find the first item whose text appears at the start of our chunk (fuzzy-ish)
+                    start_of_chunk = parent_text[:50].strip()
+                    for item in raw:
+                        if start_of_chunk in item['text'] or item['text'] in start_of_chunk:
+                            timestamp = item['start']
+                            break
             else:
                 cursor.execute("SELECT title FROM videos WHERE id = ?", (video_id,))
                 row = cursor.fetchone()
-                if row: title = row['title']
+                if row: title = row[0]
+                
+                cursor.execute("SELECT raw_json FROM transcripts WHERE video_id = ?", (video_id,))
+                t_row = cursor.fetchone()
+                if t_row and t_row[0]:
+                    raw = json.loads(t_row[0])
+                    start_of_chunk = parent_text[:50].strip()
+                    for item in raw:
+                        if start_of_chunk in item['text'] or item['text'] in start_of_chunk:
+                            timestamp = item['start']
+                            break
             
             video_title_map[video_id] = title
             video_to_index[video_id] = next_index
-            sources.append({'index': next_index, 'video_id': video_id, 'title': title, 'text': c['parent_text']})
+            sources.append({
+                'index': next_index, 
+                'video_id': video_id, 
+                'title': title, 
+                'text': parent_text,
+                'timestamp': timestamp
+            })
             next_index += 1
             
         current_idx = video_to_index[video_id]
-        blocks.append(f"[Source {current_idx}: {video_title_map[video_id]}]\n{c['parent_text']}")
+        blocks.append(f"[Source {current_idx}: {video_title_map[video_id]}]\n{parent_text}")
 
     if not USE_SUPABASE: conn.close()
     return "\n\n---\n\n".join(blocks), sources

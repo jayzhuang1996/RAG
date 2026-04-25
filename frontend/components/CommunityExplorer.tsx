@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Layers, Sparkles, BrainCircuit } from 'lucide-react';
+import { Layers, Sparkles, BrainCircuit, Layout, Grid } from 'lucide-react';
 import StrategicInsightCard from './StrategicInsightCard';
+import ClusterVisualizer from './ClusterVisualizer';
 
 interface Community {
   id: number;
@@ -14,6 +15,7 @@ interface Community {
 export default function CommunityExplorer() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'briefing' | 'visualization'>('briefing');
 
   useEffect(() => {
     fetch('/api/communities')
@@ -35,71 +37,91 @@ export default function CommunityExplorer() {
     );
   }
 
-  if (communities.length === 0) {
-    return (
-      <div style={{ padding: '80px 40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-        <Layers size={48} style={{ marginBottom: '16px', opacity: 0.2 }} />
-        <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>No Analysis Found</h3>
-        <p style={{ fontSize: '14px', marginTop: '8px' }}>
-          Extraction pipeline must be run to generate strategic thematic clusters.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
       {/* Editorial Header */}
-      <div style={{ marginBottom: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-main)', marginBottom: '8px' }}>
-          <BrainCircuit size={20} />
-          <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Thematic Intelligence Mapping
-          </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-main)', marginBottom: '8px' }}>
+            <BrainCircuit size={20} />
+            <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Thematic Intelligence Mapping
+            </span>
+          </div>
+          <h2 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', maxWidth: '600px' }}>
+            Macro Trends & Strategic Clusters
+          </h2>
         </div>
-        <h2 style={{ 
-          fontSize: '32px', 
-          fontWeight: 800, 
-          color: 'var(--text-primary)', 
-          fontFamily: 'var(--font-display)',
-          maxWidth: '600px'
-        }}>
-          Macro Trends & Strategic Clusters
-        </h2>
-        <p style={{ 
-          fontSize: '16px', 
-          color: 'var(--text-muted)', 
-          marginTop: '12px',
-          maxWidth: '700px',
-          lineHeight: 1.6
-        }}>
-          Using graph-theoretic modularity and semantic analysis, we have distilled 22,000+ conversation triples into 12 actionable strategic domains. 
-        </p>
+
+        {/* View Toggle */}
+        <div style={{ display: 'flex', background: 'var(--bg-card)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <button 
+            onClick={() => setViewMode('briefing')}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              background: viewMode === 'briefing' ? 'var(--accent-main)' : 'transparent',
+              color: viewMode === 'briefing' ? '#fff' : 'var(--text-muted)',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Layout size={14} />
+            Strategic Briefing
+          </button>
+          <button 
+            onClick={() => setViewMode('visualization')}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              background: viewMode === 'visualization' ? 'var(--accent-main)' : 'transparent',
+              color: viewMode === 'visualization' ? '#fff' : 'var(--text-muted)',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Grid size={14} />
+            Thematic Map
+          </button>
+        </div>
       </div>
 
-      {/* Strategic Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr',
-        gap: '32px' 
-      }}>
-        {communities.map((c, i) => (
-          <StrategicInsightCard key={c.id} community={c} index={i} />
-        ))}
-      </div>
+      {viewMode === 'briefing' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
+          {communities.map((c, i) => (
+            <StrategicInsightCard key={c.id} community={c} index={i} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ 
+          height: '600px', 
+          background: 'var(--bg-card)', 
+          border: '1px solid var(--border)', 
+          borderRadius: '24px', 
+          overflow: 'hidden',
+          boxShadow: 'var(--shadow-lg)'
+        }}>
+          <ClusterVisualizer communities={communities} height={600} />
+        </div>
+      )}
 
       {/* Footer Insight */}
-      <div style={{ 
-        marginTop: '40px', 
-        padding: '32px', 
-        background: 'var(--bg-panel)', 
-        borderRadius: '24px',
-        textAlign: 'center',
-        border: '1px dashed var(--border)'
-      }}>
+      <div style={{ marginTop: '0px', padding: '32px', background: 'var(--bg-panel)', borderRadius: '24px', textAlign: 'center', border: '1px dashed var(--border)' }}>
         <Sparkles size={24} color="var(--accent-main)" style={{ marginBottom: '12px', opacity: 0.5 }} />
         <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto' }}>
-          These clusters are dynamically generated. As more episodes are ingested, themes will merge and evolve to reflect the shifting landscape of discussed topics.
+          Extraction successful. {communities.length} clusters analyzed using greedy modularity and strategic LLM synthesis.
         </p>
       </div>
     </div>
