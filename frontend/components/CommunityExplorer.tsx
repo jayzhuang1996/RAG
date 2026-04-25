@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Layers, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import ClusterVisualizer from './ClusterVisualizer';
 
 interface Community {
   id: number;
@@ -14,6 +15,7 @@ export default function CommunityExplorer() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'visual' | 'list'>('visual');
 
   useEffect(() => {
     fetch('/api/communities')
@@ -58,12 +60,58 @@ export default function CommunityExplorer() {
   }
 
   return (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-        {communities.length} thematic clusters extracted via Greedy Modularity
-      </p>
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', height: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          {communities.length} thematic clusters extracted via Greedy Modularity
+        </p>
+        
+        {/* Toggle View */}
+        <div style={{ display: 'flex', background: 'var(--bg-hover)', borderRadius: '8px', padding: '4px' }}>
+          <button 
+            onClick={() => setViewMode('visual')}
+            style={{
+              padding: '4px 12px',
+              fontSize: '12px',
+              fontWeight: viewMode === 'visual' ? 600 : 400,
+              background: viewMode === 'visual' ? 'var(--bg-panel)' : 'transparent',
+              color: viewMode === 'visual' ? 'var(--accent-main)' : 'var(--text-secondary)',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'visual' ? 'var(--shadow-sm)' : 'none',
+              transition: 'all 0.15s'
+            }}
+          >
+            Visual Map
+          </button>
+          <button 
+            onClick={() => setViewMode('list')}
+            style={{
+              padding: '4px 12px',
+              fontSize: '12px',
+              fontWeight: viewMode === 'list' ? 600 : 400,
+              background: viewMode === 'list' ? 'var(--bg-panel)' : 'transparent',
+              color: viewMode === 'list' ? 'var(--accent-main)' : 'var(--text-secondary)',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'list' ? 'var(--shadow-sm)' : 'none',
+              transition: 'all 0.15s'
+            }}
+          >
+            Directory
+          </button>
+        </div>
+      </div>
 
-      {communities.map((c, i) => {
+      {viewMode === 'visual' ? (
+        <div style={{ flex: 1, minHeight: '400px', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+          <ClusterVisualizer communities={communities} height={500} />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {communities.map((c, i) => {
         const nodes = getNodes(c);
         const color = PALETTE[i % PALETTE.length];
         const isOpen = expanded === c.id;
@@ -145,6 +193,8 @@ export default function CommunityExplorer() {
           </div>
         );
       })}
+      </div>
+      )}
     </div>
   );
 }

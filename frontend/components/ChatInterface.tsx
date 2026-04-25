@@ -194,10 +194,19 @@ export default function ChatInterface() {
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {msg.sources.map((s, idx) => (
-                          <span key={idx} className="source-pill">
+                          <a 
+                            key={idx} 
+                            href={`https://youtube.com/watch?v=${s.video_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="source-pill"
+                            style={{ textDecoration: 'none', transition: 'transform 0.15s', cursor: 'pointer' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'none'}
+                          >
                             <BookOpen size={10} />
                             [{s.index}] {s.title}
-                          </span>
+                          </a>
                         ))}
                       </div>
                     </div>
