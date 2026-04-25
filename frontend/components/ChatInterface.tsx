@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Loader2, Mic, Zap, BookOpen } from 'lucide-react';
+import { Send, Sparkles, BookOpen, AlertCircle } from 'lucide-react';
 import MermaidVisualizer from './MermaidVisualizer';
 
 interface Message {
@@ -21,8 +21,8 @@ const SUGGESTED = [
 ];
 
 export default function ChatInterface() {
-  const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeGraph, setActiveGraph] = useState<Message | null>(null);
   const [selectedSource, setSelectedSource] = useState<{ title: string; text: string; index: number } | null>(null);
@@ -36,8 +36,8 @@ export default function ChatInterface() {
     setQuery('');
     setLoading(true);
 
-      try {
-      const res = await fetch('/api/chat', {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: question }),
@@ -60,7 +60,6 @@ export default function ChatInterface() {
         graph_data: data.graph_data,
       };
       setMessages(prev => [...prev, assistantMsg]);
-      if (data.graph_data?.length > 0) setActiveGraph(assistantMsg);
     } catch (err: any) {
       setMessages(prev => [...prev, {
         role: 'error',
@@ -71,68 +70,42 @@ export default function ChatInterface() {
     }
   };
 
-  return (
-    <div style={{ display: 'flex', gap: '20px', height: '100%' }}>
-      {/* Chat Column */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        minWidth: 0,
-        background: 'var(--bg-panel)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '24px 32px',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-card)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
-          <Zap size={18} color="var(--accent-main)" />
-          <span style={{ fontWeight: 600, fontSize: '16px', fontFamily: 'var(--font-display)' }}>Podcast Intelligence</span>
-          <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            LangGraph · BM25 + Vector · Cohere Rerank
-          </span>
-        </div>
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-        {/* Messages */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-        }}>
+  return (
+    <div style={{ display: 'flex', height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
+        {/* Messages area */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
           {messages.length === 0 && (
-            <div style={{ marginTop: '40px' }}>
-              <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '32px', fontSize: '14px' }}>
-                Ask anything about your podcast knowledge base
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '24px',
+              paddingBottom: '60px'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <Sparkles size={48} color="var(--accent-main)" style={{ marginBottom: '16px', opacity: 0.8 }} />
+                <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                  Intelligence Chat
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '400px', margin: '8px auto' }}>
+                  Analyze thematic clusters and relationship graphs across the transcript database.
+                </p>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxWidth: '600px' }}>
                 {SUGGESTED.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSubmit(s)}
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '10px',
-                      padding: '14px 16px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      color: 'var(--text-secondary)',
-                      fontSize: '13px',
-                      lineHeight: '1.5',
-                      transition: 'all 0.15s',
-                    }}
-                    onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--accent-blue)')}
-                    onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  <button 
+                    key={i} 
+                    className="suggestion-chip"
+                    onClick={() => { setQuery(s); handleSubmit(s); }}
                   >
                     {s}
                   </button>
@@ -141,56 +114,36 @@ export default function ChatInterface() {
             </div>
           )}
 
-          {messages.map((msg, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            }}>
-              {msg.role === 'user' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '850px', margin: '0 auto' }}>
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}`} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                gap: '8px'
+              }}>
                 <div style={{
-                  maxWidth: '75%',
-                  background: 'var(--accent-main)',
-                  boxShadow: 'var(--shadow-sm)',
-                  borderRadius: '16px 16px 4px 16px',
-                  padding: '14px 20px',
-                  color: '#fff',
+                  padding: msg.role === 'error' ? '16px' : '0',
+                  background: msg.role === 'user' ? 'var(--accent-main)' : (msg.role === 'error' ? 'var(--accent-main-dim)' : 'transparent'),
+                  color: msg.role === 'user' ? '#fff' : (msg.role === 'error' ? 'var(--accent-main)' : 'var(--text-secondary)'),
+                  borderRadius: '16px',
+                  border: msg.role === 'error' ? '1px solid var(--accent-main)' : 'none',
                   fontSize: '15px',
-                  lineHeight: '1.6',
+                  lineHeight: '1.7',
+                  width: msg.role === 'user' ? 'auto' : '100%',
+                  maxWidth: msg.role === 'user' ? '80%' : '100%',
                 }}>
-                  {msg.content}
-                </div>
-              ) : msg.role === 'error' ? (
-                <div style={{
-                  maxWidth: '85%',
-                  background: 'var(--accent-light)',
-                  border: '1px solid var(--accent-muted)',
-                  borderRadius: '4px 16px 16px 16px',
-                  padding: '14px 18px',
-                  color: 'var(--accent-hover)',
-                  fontSize: '14px',
-                  fontFamily: 'var(--font-mono)'
-                }}>
-                  {msg.content}
-                </div>
-              ) : (
-                <div style={{
-                  maxWidth: '100%',
-                  background: 'var(--bg-panel)',
-                  border: '1px solid var(--border)',
-                  boxShadow: 'var(--shadow-md)',
-                  borderRadius: '4px 16px 16px 16px',
-                  padding: '24px',
-                }}>
-                  <div className="prose-editorial">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
+                  {msg.role === 'user' ? (
+                    <div style={{ padding: '12px 20px' }}>{msg.content}</div>
+                  ) : (
+                    <div className="prose-editorial">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    </div>
+                  )}
 
-                  {/* Sources */}
                   {msg.sources && msg.sources.length > 0 && (
-                    <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px' }}>
                         Sources
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -199,7 +152,7 @@ export default function ChatInterface() {
                             key={idx} 
                             onClick={(e) => {
                               e.preventDefault();
-                              const text = s.text || "Transcript chunk not provided by backend.";
+                              const text = s.text || "Transcript chunk context missing.";
                               setSelectedSource({ title: s.title, text, index: s.index });
                             }}
                             className="source-pill"
@@ -210,8 +163,6 @@ export default function ChatInterface() {
                               border: 'none',
                               fontFamily: 'inherit'
                             }}
-                            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                            onMouseOut={e => e.currentTarget.style.transform = 'none'}
                           >
                             <BookOpen size={10} />
                             [{s.index}] {s.title}
@@ -221,7 +172,6 @@ export default function ChatInterface() {
                     </div>
                   )}
 
-                  {/* Graph toggle */}
                   {msg.graph_data && msg.graph_data.length > 0 && (
                     <div style={{ marginTop: '16px' }}>
                       <button
@@ -254,72 +204,60 @@ export default function ChatInterface() {
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          ))}
-
-          {loading && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <div style={{
-                background: 'var(--bg-panel)',
-                border: '1px solid var(--border)',
-                boxShadow: 'var(--shadow-sm)',
-                borderRadius: '4px 16px 16px 16px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: 'var(--text-secondary)',
-                fontSize: '13px',
-                fontFamily: 'var(--font-mono)'
-              }}>
-                <Loader2 size={16} className="animate-spin" color="var(--accent-main)" style={{ animation: 'spin 1s linear infinite' }} />
-                <span>Researcher → Analyst → Writer...</span>
               </div>
-            </div>
-          )}
+            ))}
+            {loading && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{ padding: '16px' }}>
+                  <div className="shimmer" style={{ width: '120px', height: '24px', borderRadius: '4px' }} />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
-        {/* Input */}
-        <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-          <form
+        {/* Input box */}
+        <div style={{ 
+          padding: '24px 32px', 
+          borderTop: '1px solid var(--border)',
+          background: 'var(--bg-panel)'
+        }}>
+          <form 
             onSubmit={e => { e.preventDefault(); handleSubmit(); }}
-            style={{ display: 'flex', gap: '12px', alignItems: 'center' }}
+            style={{ display: 'flex', gap: '12px', maxWidth: '850px', margin: '0 auto' }}
           >
             <input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Ask about your podcasts..."
+              placeholder="Ask anything about the podcast database..."
               disabled={loading}
+              className="chat-input"
               style={{
                 flex: 1,
                 background: 'var(--bg-panel)',
                 border: '1px solid var(--border)',
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
                 borderRadius: '12px',
                 padding: '14px 20px',
                 color: 'var(--text-primary)',
                 fontSize: '15px',
-                outline: 'none',
-                transition: 'border-color 0.15s, box-shadow 0.15s',
+                outline: 'none'
               }}
-              onFocus={e => { e.target.style.borderColor = 'var(--accent-main)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-light)'; }}
-              onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.02)'; }}
             />
             <button
               type="submit"
               disabled={loading || !query.trim()}
+              className="send-button"
               style={{
                 background: query.trim() ? 'var(--accent-main)' : 'var(--bg-panel)',
                 border: `1px solid ${query.trim() ? 'var(--accent-main)' : 'var(--border)'}`,
-                boxShadow: query.trim() ? 'var(--shadow-sm)' : 'none',
                 borderRadius: '12px',
-                padding: '14px 20px',
+                padding: '0 20px',
                 cursor: query.trim() ? 'pointer' : 'default',
                 display: 'flex',
                 alignItems: 'center',
-                transition: 'all 0.15s',
+                justifyContent: 'center'
               }}
             >
               <Send size={18} color={query.trim() ? '#fff' : 'var(--text-muted)'} />
@@ -328,6 +266,54 @@ export default function ChatInterface() {
         </div>
       </div>
 
+      {/* Pop-up transcript overlay */}
+      {selectedSource && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(10, 8, 5, 0.4)',
+          backdropFilter: 'blur(2px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div style={{
+            background: 'var(--bg-panel)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '80%',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600, fontSize: '14px', fontFamily: 'var(--font-display)' }}>
+                [Source {selectedSource.index}] {selectedSource.title}
+              </span>
+              <button 
+                onClick={() => setSelectedSource(null)} 
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  fontSize: '24px',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1
+                }}
+              >
+                &times;
+              </button>
+            </div>
+            <div style={{ padding: '24px', overflowY: 'auto', fontSize: '14px', lineHeight: '1.7', color: 'var(--text-secondary)' }}>
+              {selectedSource.text}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

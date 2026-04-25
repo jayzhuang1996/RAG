@@ -96,11 +96,18 @@ def extract_and_save_communities():
 
     print(f"Graph built. Modularity clustering nodes...")
     communities = list(greedy_modularity_communities(G))
-    print(f"Found {len(communities)} communities.")
+    # Sort by size descending
+    communities.sort(key=len, reverse=True)
+    # Target only the top 12 most significant macro-clusters
+    communities = communities[:12]
+    print(f"Kept top {len(communities)} most significant communities.")
 
     supabase = get_supabase_client() if USE_SUPABASE else None
 
-    if not USE_SUPABASE:
+    if USE_SUPABASE:
+        print("Clearing old communities from Supabase...")
+        supabase.table("viking_communities").delete().neq("id", -1).execute()
+    else:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM communities")
