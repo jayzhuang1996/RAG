@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface Community {
   id: number;
@@ -12,113 +11,130 @@ interface Community {
 
 interface Props {
   communities: Community[];
-  width?: number;
   height?: number;
 }
 
 const PALETTE = [
-  '#2A7B9B', '#7B6DAA', '#2D8B55', '#D4A843', '#D94F30', '#22c55e', '#f97316', '#06b6d4'
+  '#2A7B9B', '#7B6DAA', '#2D8B55', '#D4A843', '#D94F30', '#E5BA73', '#9DC08B', '#6096B4'
 ];
 
-const CustomizedContent = (props: any) => {
-  const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
-
-  // Don't render text if the box is too small to be readable
-  const isLargeEnough = width > 80 && height > 40;
-  
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        style={{
-          fill: depth < 2 ? colors[Math.floor((index / root.children.length) * 6)] : 'rgba(255,255,255,0)',
-          stroke: '#FDF9F3',
-          strokeWidth: depth === 1 ? 2 : 1,
-          strokeOpacity: depth === 1 ? 1 : 0.4,
-        }}
-        // Slight interaction
-        onMouseOver={(e: any) => e.target.style.opacity = 0.9}
-        onMouseOut={(e: any) => e.target.style.opacity = 1}
-      />
-      {depth === 1 && isLargeEnough ? (
-        <>
-          <text 
-            x={x + 12} 
-            y={y + 24} 
-            fill="#ffffff" 
-            fontSize={14} 
-            fontWeight={600} 
-            fontFamily="var(--font-display)"
-            pointerEvents="none"
-          >
-            {name.length > 20 ? name.substring(0, 20) + '...' : name}
-          </text>
-        </>
-      ) : null}
-      {depth === 2 && width > 40 && height > 24 ? (
-        <text 
-          x={x + 8} 
-          y={y + 16} 
-          fill="rgba(255,255,255,0.9)" 
-          fontSize={11} 
-          fontFamily="var(--font-mono)"
-          pointerEvents="none"
-        >
-          {name.length > 15 ? name.substring(0, 12) + '..' : name}
-        </text>
-      ) : null}
-    </g>
-  );
-};
-
-export default function ClusterVisualizer({ communities, width, height = 500 }: Props) {
-  const data = useMemo(() => {
-    // Only visualize the top 8 macro clusters to prevent visual clutter
-    const formattedData = communities.slice(0, 8).map((c, i) => {
-      let entities: string[] = [];
-      if (Array.isArray(c.nodes)) entities = c.nodes;
+export default function ClusterVisualizer({ communities, height = 600 }: Props) {
+  const bubbles = useMemo(() => {
+    // Only visualize the top 10 clusters for clarity
+    const data = communities.slice(0, 10).map((c, i) => {
+      const color = PALETTE[i % PALETTE.length];
+      let nodeCount = 0;
+      if (Array.isArray(c.nodes)) nodeCount = c.nodes.length;
       else {
-        try { entities = JSON.parse(c.nodes || '[]'); } catch { entities = []; }
+        try { nodeCount = JSON.parse(c.nodes || '[]').length; } catch { nodeCount = 0; }
       }
       
-      const children = entities.slice(0, 5).map(e => ({
-        name: e,
-        size: 15 + Math.random() * 10 
-      }));
-
       return {
-        name: c.title || `Cluster ${c.id}`,
-        children: children.length > 0 ? children : [{ name: 'Empty', size: 10 }]
+        id: c.id,
+        title: c.title,
+        size: 50 + (nodeCount * 5), // Base size + scaling
+        color,
+        summary: c.summary
       };
     });
 
-    return [
-      {
-        name: 'Knowledge Map',
-        children: formattedData
-      }
-    ];
+    // Simple physics-less "spiral" layout for bubbles
+    return data.map((b, i) => {
+      const angle = (i / data.length) * Math.PI * 2;
+      const dist = i === 0 ? 0 : 160 + (i * 20); // Center the largest, spiral out others
+      return {
+        ...b,
+        x: 400 + Math.cos(angle) * dist,
+        y: 300 + Math.sin(angle) * dist
+      };
+    });
   }, [communities]);
 
   return (
-    <div style={{ background: 'var(--bg-panel)', width: '100%', height: '100%', position: 'relative' }}>
-      <ResponsiveContainer width="100%" height={height}>
-        <Treemap
-          data={data}
-          dataKey="size"
-          stroke="#fff"
-          fill="#D94F30"
-          content={<CustomizedContent colors={PALETTE} />}
-        >
-          <Tooltip 
-            contentStyle={{ borderRadius: '8px', border: 'none', background: 'var(--bg-card)', boxShadow: 'var(--shadow-md)', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
-            itemStyle={{ color: 'var(--accent-main)' }}
+    <div style={{ background: 'var(--bg-panel)', width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+      <svg viewBox="0 0 800 600" style={{ width: '100%', height: '100%' }}>
+        {/* Background Grid/Mesh for "Technical" look */}
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="800" height="600" fill="url(#grid)" opacity="0.5" />
+
+        {/* Lines connecting everything to the center hub */}
+        {bubbles.slice(1).map((b, i) => (
+          <line
+            key={`line-${i}`}
+            x1="400"
+            y1="300"
+            x2={b.x}
+            y2={b.y}
+            stroke={b.color}
+            strokeWidth="1"
+            strokeDasharray="4 4"
+            opacity="0.3"
           />
-        </Treemap>
-      </ResponsiveContainer>
+        ))}
+
+        {/* The Bubbles */}
+        {bubbles.map((b, i) => (
+          <g key={b.id} style={{ cursor: 'pointer' }} className="bubble-group">
+            <circle
+              cx={b.x}
+              cy={b.y}
+              r={b.size}
+              fill={`${b.color}20`}
+              stroke={b.color}
+              strokeWidth="2"
+              style={{ transition: 'all 0.3s' }}
+            />
+            {/* Glossy overlay */}
+            <circle
+              cx={b.x - b.size/3}
+              cy={b.y - b.size/3}
+              r={b.size/4}
+              fill="rgba(255,255,255,0.1)"
+              pointerEvents="none"
+            />
+            
+            {/* Label */}
+            <foreignObject
+              x={b.x - b.size * 0.8}
+              y={b.y - b.size * 0.4}
+              width={b.size * 1.6}
+              height={b.size * 0.8}
+            >
+              <div style={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                color: 'var(--text-primary)',
+                fontSize: b.size > 80 ? '13px' : '11px',
+                fontWeight: 700,
+                lineHeight: 1.2,
+                fontFamily: 'var(--font-display)',
+                padding: '4px',
+                pointerEvents: 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {b.title}
+              </div>
+            </foreignObject>
+          </g>
+        ))}
+      </svg>
+
+      <style jsx>{`
+        .bubble-group:hover circle {
+          fill: rgba(0,0,0,0.05);
+          stroke-width: 4px;
+          transform: scale(1.05);
+          transform-origin: center;
+        }
+      `}</style>
     </div>
   );
 }

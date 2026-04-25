@@ -164,7 +164,7 @@ export default function Home() {
               borderRadius: '20px',
               padding: '4px 12px',
             }}>
-              Phase 14
+              Phase 16
             </span>
           </div>
         </div>
