@@ -84,9 +84,9 @@ export default function ClusterVisualizer({ communities, width, height = 500 }: 
         try { entities = JSON.parse(c.nodes || '[]'); } catch { entities = []; }
       }
       
-      const children = entities.slice(0, 8).map(e => ({
+      const children = entities.slice(0, 5).map(e => ({
         name: e,
-        size: 10 + Math.random() * 20 // Arbitrary size for visual variance
+        size: 15 + Math.random() * 10 
       }));
 
       return {
