@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -53,12 +54,20 @@ def _build_context_block(context_results):
                 t_res = supabase.table("viking_transcripts").select("raw_json").eq("video_id", video_id).execute()
                 if t_res.data and t_res.data[0]['raw_json']:
                     raw = t_res.data[0]['raw_json']
-                    # Find the first item whose text appears at the start of our chunk (fuzzy-ish)
-                    start_of_chunk = parent_text[:50].strip()
-                    for item in raw:
-                        if start_of_chunk in item['text'] or item['text'] in start_of_chunk:
-                            timestamp = item['start']
-                            break
+                    if isinstance(raw, str):
+                        try: raw = json.loads(raw)
+                        except: raw = []
+                    
+                    if isinstance(raw, list):
+                        try:
+                            start_of_chunk = parent_text[:50].strip().lower()
+                            for item in raw:
+                                item_text = item.get('text', '').lower()
+                                if start_of_chunk in item_text or item_text in start_of_chunk:
+                                    timestamp = item.get('start', 0)
+                                    break
+                        except Exception as e:
+                            print(f"[Query] Timestamp matching failed: {e}")
             else:
                 cursor.execute("SELECT title FROM videos WHERE id = ?", (video_id,))
                 row = cursor.fetchone()
@@ -67,12 +76,16 @@ def _build_context_block(context_results):
                 cursor.execute("SELECT raw_json FROM transcripts WHERE video_id = ?", (video_id,))
                 t_row = cursor.fetchone()
                 if t_row and t_row[0]:
-                    raw = json.loads(t_row[0])
-                    start_of_chunk = parent_text[:50].strip()
-                    for item in raw:
-                        if start_of_chunk in item['text'] or item['text'] in start_of_chunk:
-                            timestamp = item['start']
-                            break
+                    try:
+                        raw = json.loads(t_row[0])
+                        start_of_chunk = parent_text[:50].strip().lower()
+                        for item in raw:
+                            item_text = item.get('text', '').lower()
+                            if start_of_chunk in item_text or item_text in start_of_chunk:
+                                timestamp = item.get('start', 0)
+                                break
+                    except Exception as e:
+                        print(f"[Query Local] Timestamp matching failed: {e}")
             
             video_title_map[video_id] = title
             video_to_index[video_id] = next_index
